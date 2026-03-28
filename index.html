@@ -816,6 +816,7 @@
 
       <div class="eda-card">
         <div class="eda-card-title">Risk Score Distribution</div>
+        <div id="risk-subtitle" style="font-size:8px;font-family:'JetBrains Mono',monospace;color:#888;margin:-4px 0 4px;padding:0 10px;letter-spacing:0.06em">CRITICAL + HIGH cells · active filters</div>
         <div class="eda-canvas-wrap"><canvas id="eda-risk" style="cursor:pointer"></canvas></div>
         <div class="eda-insight">Bars = cell count per bin · curve = density · click bar to filter by tier</div>
       </div>
@@ -1363,6 +1364,7 @@ map.on('click', function(e) {
     document.getElementById('inspector-empty').style.display = '';
     document.getElementById('inspector-detail').style.display = 'none';
     updateTemporalChart();
+    updateRiskChart();
   }
 });
 
@@ -1413,8 +1415,9 @@ function renderInspector(c) {
   streetEl.textContent = '⌛ loading street…';
   fetchOSMStreet(dotLat, dotLon).then(s => { streetEl.textContent = '📍 ' + s; });
 
-  // Update temporal chart to this cell
+  // Update temporal chart and risk distribution to this cell
   updateTemporalChart();
+  updateRiskChart();
 }
 
 function renderAreaInspector(nb) {
@@ -1814,8 +1817,11 @@ function _riskKde(cells, labels, bw) {
 }
 
 function updateRiskChart() {
-  const visCells = getVisibleIndices().map(i => CELLS[i])
-    .filter(c => c.tier === 'CRITICAL' || c.tier === 'HIGH');
+  const selMode = state.selected !== null;
+  const visCells = selMode
+    ? [CELLS[state.selected]]
+    : getVisibleIndices().map(i => CELLS[i])
+        .filter(c => c.tier === 'CRITICAL' || c.tier === 'HIGH');
 
   // Build histogram bins
   const buckets = {};
@@ -1827,12 +1833,25 @@ function updateRiskChart() {
   const binCounts = binKeys.map(k => buckets[k]);
   const binColors = binKeys.map(_riskBinColor);
 
-  // KDE over fine grid aligned to bin labels
-  const kdeValues = visCells.length ? _riskKde(visCells, binKeys, 0.008) : binKeys.map(() => 0);
+  // KDE — skip when only 1 cell selected (meaningless density)
+  const kdeValues = (!selMode && visCells.length > 1) ? _riskKde(visCells, binKeys, 0.008) : binKeys.map(() => 0);
   const kdeMax    = Math.max(...kdeValues, 0.001);
   const binMax    = Math.max(...binCounts, 1);
   // Scale KDE to match bar axis
   const kdeScaled = kdeValues.map(v => +(v / kdeMax * binMax).toFixed(2));
+
+  // Section subtitle: show mode
+  const riskSubtitle = document.getElementById('risk-subtitle');
+  if (riskSubtitle) {
+    if (selMode) {
+      const sc = CELLS[state.selected];
+      riskSubtitle.textContent = `SELECTED · ${sc.neighborhood} · ${sc.tier}`;
+      riskSubtitle.style.color = TIER_COLORS[sc.tier] || '#999';
+    } else {
+      riskSubtitle.textContent = 'CRITICAL + HIGH cells · active filters';
+      riskSubtitle.style.color = '#888';
+    }
+  }
 
   if (riskChart) {
     riskChart.data.labels                      = binKeys;
