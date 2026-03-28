@@ -896,7 +896,6 @@
     <div class="tb-title">CRASH RISK INTELLIGENCE PLATFORM</div>
   </div>
   <div class="tb-right">
-    <div class="tb-data-badge"><b>2015–2023</b> · 206K+ CRASHES · CHICAGO IL</div>
     <button id="export-btn" title="Export filtered view as printable report">⬇ EXPORT</button>
     <button id="guide-btn" title="How to use this dashboard">i</button>
   </div>
@@ -1236,7 +1235,7 @@
               <br>
               <b>Tiers:</b> CRITICAL ≥ 0.14 · HIGH ≥ 0.08 · MONITOR ≥ 0.04 · BASELINE &lt; 0.04<br>
               <b>Range:</b> 0.00 (safest) → ~0.22 (worst observed)<br>
-              <b>Source:</b> Chicago Data Portal 2015–2023 · 206K+ records
+              <b>Source:</b> Chicago Data Portal 2023–2025
             </div>
           </div>
         </div>
@@ -1369,7 +1368,7 @@
 <div id="statusbar">
   <span id="sb-coords">LAT: — · LON: —</span>
   <span id="sb-cells">VISIBLE CELLS: 206 | FILTERED: 0 HIDDEN</span>
-  <span id="sb-info">ZOOM: 13 · CHICAGO, IL · <a href="https://data.cityofchicago.org/Transportation/Traffic-Crashes-Crashes/85ca-t3if" target="_blank" style="color:var(--blueprint);text-decoration:none;letter-spacing:0.04em">Chicago Data Portal ↗</a></span>
+  <span id="sb-info">ZOOM: 13 · CHICAGO, IL · Trained from 2023–2025 data · Full data: <a href="https://data.cityofchicago.org/Transportation/Traffic-Crashes-Crashes/85ca-t3if" target="_blank" style="color:var(--blueprint);text-decoration:none;letter-spacing:0.04em">Chicago Data Portal ↗</a></span>
 </div>
 
 <!-- ══ SCRIPT ════════════════════════════════════════════════════════ -->
@@ -2640,7 +2639,7 @@ map.on('zoomend', () => {
     heatLayers[cid].redraw();
   });
   document.getElementById('sb-info').innerHTML =
-    `ZOOM: ${z} · CHICAGO, IL · <a href="https://data.cityofchicago.org/Transportation/Traffic-Crashes-Crashes/85ca-t3if" target="_blank" style="color:var(--blueprint);text-decoration:none;letter-spacing:0.04em">Chicago Data Portal ↗</a>`;
+    `ZOOM: ${z} · CHICAGO, IL · Trained from 2023–2025 data · Full data: <a href="https://data.cityofchicago.org/Transportation/Traffic-Crashes-Crashes/85ca-t3if" target="_blank" style="color:var(--blueprint);text-decoration:none;letter-spacing:0.04em">Chicago Data Portal ↗</a>`;
 });
 
 /* ── Initial Render ────────────────────────────────────────────── */
@@ -2784,7 +2783,7 @@ document.getElementById('export-btn').addEventListener('click', function() {
     <div>
       <div class="meta">TACTICAL BRIEFING · CHICAGO OFFICE OF TRANSPORTATION SAFETY</div>
       <h1>CHICAGO CRASH RISK INTELLIGENCE PLATFORM</h1>
-      <div class="meta" style="margin-top:4px">Data: Chicago Data Portal 2015–2023 · 206,135+ crash records · Grid resolution: 0.005° (~400m)</div>
+      <div class="meta" style="margin-top:4px">Trained from 2023–2025 Chicago crash data · Full data: data.cityofchicago.org · Grid resolution: 0.005° (~400m)</div>
     </div>
     <div style="text-align:right;font-size:9px;color:#888;white-space:nowrap">
       Generated ${genDate}<br>
@@ -2826,7 +2825,7 @@ document.getElementById('export-btn').addEventListener('click', function() {
 
   <h2>Risk Score Methodology</h2>
   <div class="formula">
-    <b>Formula</b> — Composite index derived from 2015–2023 Chicago Traffic Crash records (IDOT severity classifications):<br><br>
+    <b>Formula</b> — Composite index derived from 2023–2025 Chicago Traffic Crash records (IDOT severity classifications):<br><br>
     <b>Risk Score</b> = 0.30 × crash_frequency_norm + 0.35 × severity_rate_shrunk + 0.15 × speed_norm + 0.12 × temporal_concentration + 0.08 × dbscan_density_flag<br><br>
     <b>Tier thresholds:</b> CRITICAL ≥ 0.14 · HIGH ≥ 0.08 · MONITOR ≥ 0.04 · BASELINE &lt; 0.04<br>
     <b>Severity</b> = crashes resulting in Type A injury (incapacitating) or fatality per IDOT crash severity coding<br>
@@ -2837,7 +2836,7 @@ document.getElementById('export-btn').addEventListener('click', function() {
   </div>
 
   <div class="footer">
-    <span>Source: <a href="https://data.cityofchicago.org/Transportation/Traffic-Crashes-Crashes/85ca-t3if">Chicago Data Portal — Traffic Crashes (2015–2023)</a></span>
+    <span>Source: <a href="https://data.cityofchicago.org/Transportation/Traffic-Crashes-Crashes/85ca-t3if">Chicago Data Portal — Traffic Crashes (2023–2025)</a></span>
     <span>rzrizaldy.github.io/chicago_crash_dashboard · Generated ${genDate}</span>
   </div>
 
