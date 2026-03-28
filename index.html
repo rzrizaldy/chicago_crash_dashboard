@@ -715,6 +715,119 @@
       font-size: 11px;
       padding-left: 4px;
     }
+
+    /* ── Guide Button ───────────────────────────────────────────────── */
+    #guide-btn {
+      width: 26px; height: 26px;
+      background: transparent;
+      border: 2px solid var(--blueprint);
+      color: var(--blueprint);
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      letter-spacing: 0;
+      flex-shrink: 0;
+      transition: background 0.1s, color 0.1s;
+    }
+    #guide-btn:hover { background: var(--blueprint); color: var(--paper); }
+
+    /* ── Guide Modal ────────────────────────────────────────────────── */
+    #guide-overlay {
+      position: fixed; inset: 0;
+      background: rgba(26,26,26,0.72);
+      z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #guide-overlay.hidden { display: none; }
+    #guide-modal {
+      background: var(--paper);
+      border: 3px solid var(--ink);
+      box-shadow: 8px 8px 0 var(--ink);
+      width: 520px; max-width: 94vw;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 0;
+      position: relative;
+    }
+    #guide-modal-head {
+      background: var(--ink);
+      color: var(--paper);
+      padding: 14px 18px 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    #guide-modal-head h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800; font-size: 14px;
+      letter-spacing: 0.12em;
+      margin: 0;
+    }
+    #guide-modal-head p {
+      font-size: 9px; color: #aaa;
+      letter-spacing: 0.06em; margin: 3px 0 0;
+    }
+    #guide-close {
+      background: transparent; border: 2px solid #555;
+      color: #aaa; cursor: pointer;
+      width: 28px; height: 28px;
+      font-size: 14px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: border-color 0.1s, color 0.1s;
+    }
+    #guide-close:hover { border-color: var(--paper); color: var(--paper); }
+    #guide-body { padding: 16px 18px 20px; }
+    .guide-step {
+      display: flex; gap: 12px;
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--grid);
+    }
+    .guide-step:last-child { border-bottom: none; margin-bottom: 0; }
+    .guide-num {
+      width: 24px; height: 24px; flex-shrink: 0;
+      background: var(--ink); color: var(--paper);
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800; font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+    }
+    .guide-step-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700; font-size: 12px;
+      letter-spacing: 0.08em; margin-bottom: 5px;
+    }
+    .guide-step-body {
+      font-size: 10px; line-height: 1.7; color: #333;
+    }
+    .guide-step-body b { color: var(--ink); font-weight: 700; }
+    .guide-tier-row {
+      display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px;
+    }
+    .guide-tier-pill {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.08em;
+      padding: 2px 7px; border: 2px solid;
+    }
+    .guide-tip {
+      background: #1A1A1A; color: #F2F0E9;
+      font-size: 9px; letter-spacing: 0.06em;
+      padding: 8px 12px; margin-top: 14px;
+      border-left: 4px solid var(--blueprint);
+    }
+    #guide-footer {
+      text-align: right; padding: 0 18px 16px;
+    }
+    #guide-got-it {
+      background: var(--ink); color: var(--paper);
+      border: none; cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700; font-size: 11px;
+      letter-spacing: 0.1em;
+      padding: 8px 22px;
+      transition: opacity 0.1s;
+    }
+    #guide-got-it:hover { opacity: 0.8; }
   </style>
 </head>
 <body>
@@ -725,8 +838,104 @@
     <div class="tb-logo">CHICAGO</div>
     <div class="tb-title">CRASH RISK INTELLIGENCE PLATFORM</div>
   </div>
+  <div class="tb-right">
+    <button id="guide-btn" title="How to use this dashboard">i</button>
+  </div>
+</div>
 
+<!-- ══ GUIDE MODAL ══════════════════════════════════════════════════ -->
+<div id="guide-overlay" class="hidden">
+  <div id="guide-modal">
+    <div id="guide-modal-head">
+      <div>
+        <h2>HOW TO READ THIS DASHBOARD</h2>
+        <p>Chicago Crash Risk Intelligence Platform · Quick Guide</p>
+      </div>
+      <button id="guide-close">✕</button>
+    </div>
+    <div id="guide-body">
 
+      <div class="guide-step">
+        <div class="guide-num">1</div>
+        <div>
+          <div class="guide-step-title">THE MAP — Each Square = One City Block Area</div>
+          <div class="guide-step-body">
+            Chicago is split into hundreds of small grid squares. Each square is colored by how dangerous it is for car crashes. The darker and more intense the color, the worse it is.
+            <div class="guide-tier-row">
+              <span class="guide-tier-pill" style="border-color:#FF4D00;color:#FF4D00">🔴 CRITICAL</span>
+              <span class="guide-tier-pill" style="border-color:#FF2B8C;color:#FF2B8C">🩷 HIGH</span>
+              <span class="guide-tier-pill" style="border-color:#2B4CFF;color:#2B4CFF">🔵 MONITOR</span>
+              <span class="guide-tier-pill" style="border-color:#00B884;color:#00B884">🟢 BASELINE</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">2</div>
+        <div>
+          <div class="guide-step-title">LEFT PANEL — Filter What You See</div>
+          <div class="guide-step-body">
+            Use the checkboxes and dropdowns on the left to narrow down the map:<br><br>
+            <b>Tier</b> → show only CRITICAL squares, or only HIGH, etc.<br>
+            <b>Cluster</b> → filter by crash <i>pattern type</i> (e.g. show only "HOT SPOTS" — worst crash zones)<br>
+            <b>Region / Neighborhood</b> → zoom into a specific part of Chicago<br><br>
+            All charts on the right will update automatically to match your filters.
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">3</div>
+        <div>
+          <div class="guide-step-title">CLICK A SQUARE — Inspect One Cell</div>
+          <div class="guide-step-body">
+            Click any colored square on the map to inspect it. The right panel shows:<br><br>
+            <b>Neighborhood name · coordinates</b><br>
+            <b>Tier badge + cluster type</b><br>
+            <b>Total crashes · severe rate · risk score · mean speed</b><br>
+            <b>When crashes happen</b> → rush hour %, night %, weekend %, hit &amp; run %<br><br>
+            The Risk Distribution chart also updates to show just that one cell's position.
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">4</div>
+        <div>
+          <div class="guide-step-title">BOTTOM BAR — Temporal Trend</div>
+          <div class="guide-step-body">
+            The chart at the bottom shows <b>when crashes tend to be most severe</b>.<br><br>
+            Switch views using the tabs:<br>
+            <b>DAILY</b> → by hour of day (0–23h) — when during the day?<br>
+            <b>WEEKLY</b> → by day of week — which days are worst?<br>
+            <b>MONTHLY</b> → by month — any seasonal pattern?<br><br>
+            Darker bars = more severe crashes. The black line shows the overall trend. Drag the top edge of this panel up to make it taller.
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="guide-num">5</div>
+        <div>
+          <div class="guide-step-title">RIGHT PANEL CHARTS — All React to Filters</div>
+          <div class="guide-step-body">
+            <b>Risk Distribution</b> → where do dangerous cells sit on the risk score scale? Click a bar to filter by tier.<br>
+            <b>Temporal Overview</b> → averaged time patterns for all currently visible cells.<br>
+            <b>Critical Hotspots</b> → top 5 most dangerous neighborhoods in the filtered view.<br>
+            <b>Cluster Analysis</b> → breakdown of crash pattern types in the current filter.
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-tip">
+        💡 <b>Suggested flow:</b> Start with all filters on → look at the map → filter to CRITICAL only → click a red square → check the right panel → switch Temporal view to DAILY to see what hour is worst.
+      </div>
+    </div>
+    <div id="guide-footer">
+      <button id="guide-got-it">GOT IT ✓</button>
+    </div>
+  </div>
 </div>
 
 <!-- ══ APP BODY ═════════════════════════════════════════════════════ -->
@@ -2034,16 +2243,33 @@ function updateTemporalChart() {
     colors = valuesToBrownColors(values);
   }
 
+  // Smooth trend line (3-pt moving average)
+  function trendLine(arr) {
+    return arr.map((_, i) => {
+      const s = Math.max(0, i-1), e = Math.min(arr.length, i+2);
+      const sl = arr.slice(s, e);
+      return sl.reduce((a,b)=>a+b,0)/sl.length;
+    });
+  }
+  const trend = trendLine(values);
+
   if (temporalChart) {
     temporalChart.data.labels = labels;
     temporalChart.data.datasets[0].data   = values;
     temporalChart.data.datasets[0].backgroundColor = colors;
+    temporalChart.data.datasets[1].data   = trend;
     temporalChart.update('none');
   } else {
     const ctx = document.getElementById('temporal-chart').getContext('2d');
     temporalChart = new Chart(ctx, {
       type: 'bar',
-      data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: 'rgba(26,26,26,0.4)', borderWidth: 1 }] },
+      data: { labels, datasets: [
+        { type:'bar',  data: values, backgroundColor: colors, borderWidth: 0, order: 2 },
+        { type:'line', data: trend,  borderColor: '#1A1A1A', borderWidth: 2.5, fill: false,
+          tension: 0.42, pointRadius: 0, pointHoverRadius: 4,
+          hoverBorderColor:'#1A1A1A', hoverBackgroundColor:'#1A1A1A',
+          label: 'trend', order: 1 }
+      ]},
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -2315,6 +2541,40 @@ map.on('zoomend', () => {
 
 /* ── Initial Render ────────────────────────────────────────────── */
 applyFilters();
+
+/* ── Guide Modal ────────────────────────────────────────────────── */
+(function() {
+  const overlay  = document.getElementById('guide-overlay');
+  const btnOpen  = document.getElementById('guide-btn');
+  const btnClose = document.getElementById('guide-close');
+  const btnGotIt = document.getElementById('guide-got-it');
+
+  function openGuide()  { overlay.classList.remove('hidden'); }
+  function closeGuide() { overlay.classList.add('hidden'); }
+
+  btnOpen.addEventListener('click', openGuide);
+  btnClose.addEventListener('click', closeGuide);
+  btnGotIt.addEventListener('click', () => {
+    localStorage.setItem('guide-seen-v1', '1');
+    closeGuide();
+  });
+  // Close on backdrop click
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) {
+      localStorage.setItem('guide-seen-v1', '1');
+      closeGuide();
+    }
+  });
+  // Close on Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeGuide();
+  });
+
+  // Auto-show on first visit
+  if (!localStorage.getItem('guide-seen-v1')) {
+    setTimeout(openGuide, 600); // small delay so map loads first
+  }
+})();
 </script>
 </body>
 </html>
