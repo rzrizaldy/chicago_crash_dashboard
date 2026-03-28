@@ -634,7 +634,7 @@
     .temporal-canvas-wrap {
       flex: 1;
       position: relative;
-      padding: 3px 8px 10px;
+      padding: 3px 8px 18px;
     }
 
     /* ── 3-card KPI grid ─────────────────────────────────────────────── */
@@ -800,7 +800,7 @@
       <div class="eda-card">
         <div class="eda-card-title">Risk Score Distribution</div>
         <div class="eda-canvas-wrap"><canvas id="eda-risk" style="cursor:pointer"></canvas></div>
-        <div class="eda-insight">Click any bar to filter by risk tier (orange = CRITICAL)</div>
+        <div class="eda-insight">Bars = cell count per bin · curve = density · click bar to filter by tier</div>
       </div>
 
     </div>
@@ -1760,83 +1760,125 @@ let _top10Sorted = []; // stored for click reference
   });
 })();
 
-// 4. Risk Score Distribution — density line chart, active cells only
+// 4. Risk Score Distribution — clickable histogram bins + KDE line overlay
 let riskChart = null;
+const RISK_CRIT_THRESH = 0.14, RISK_HIGH_THRESH = 0.08;
+const RISK_BIN_STEP = 0.01;
+
+function _riskBinColor(key) {
+  const v = +key;
+  return v >= RISK_CRIT_THRESH ? 'rgba(255,77,0,0.78)'
+       : v >= RISK_HIGH_THRESH  ? 'rgba(255,43,140,0.60)'
+       : 'rgba(43,76,255,0.35)';
+}
+
+function _riskKde(cells, labels, bw) {
+  return labels.map(l => {
+    const x = +l;
+    const density = cells.reduce((s, c) => {
+      const z = (x - c.riskScore) / bw;
+      return s + Math.exp(-0.5 * z * z);
+    }, 0) / (cells.length * bw * Math.sqrt(2 * Math.PI));
+    return +density.toFixed(5);
+  });
+}
+
 function updateRiskChart() {
   const visCells = getVisibleIndices().map(i => CELLS[i])
     .filter(c => c.tier === 'CRITICAL' || c.tier === 'HIGH');
-  if (!visCells.length) {
-    if (riskChart) { riskChart.data.datasets[0].data = []; riskChart.update('none'); }
-    return;
-  }
-  // KDE with Gaussian kernel over fixed grid 0.00–0.22 step 0.002
-  const bandwidth = 0.006;
-  const pts = [];
-  for (let x = 0.00; x <= 0.22; x = +(x + 0.002).toFixed(3)) {
-    const density = visCells.reduce((s, c) => {
-      const z = (x - c.riskScore) / bandwidth;
-      return s + Math.exp(-0.5 * z * z);
-    }, 0) / (visCells.length * bandwidth * Math.sqrt(2 * Math.PI));
-    pts.push({ x: +x.toFixed(3), y: +density.toFixed(4) });
-  }
-  const labels = pts.map(p => p.x.toFixed(3));
-  const values = pts.map(p => p.y);
-  // Color by risk tier zone
-  const critThresh = 0.14, highThresh = 0.08;
-  const fillColors = labels.map(l => {
-    const v = +l;
-    return v >= critThresh ? 'rgba(255,77,0,0.65)' : v >= highThresh ? 'rgba(255,43,140,0.50)' : 'rgba(43,76,255,0.35)';
+
+  // Build histogram bins
+  const buckets = {};
+  visCells.forEach(c => {
+    const b = (Math.floor(c.riskScore / RISK_BIN_STEP) * RISK_BIN_STEP).toFixed(2);
+    buckets[b] = (buckets[b] || 0) + 1;
   });
+  const binKeys   = Object.keys(buckets).sort((a, b) => +a - +b);
+  const binCounts = binKeys.map(k => buckets[k]);
+  const binColors = binKeys.map(_riskBinColor);
+
+  // KDE over fine grid aligned to bin labels
+  const kdeValues = visCells.length ? _riskKde(visCells, binKeys, 0.008) : binKeys.map(() => 0);
+  const kdeMax    = Math.max(...kdeValues, 0.001);
+  const binMax    = Math.max(...binCounts, 1);
+  // Scale KDE to match bar axis
+  const kdeScaled = kdeValues.map(v => +(v / kdeMax * binMax).toFixed(2));
 
   if (riskChart) {
-    riskChart.data.labels = labels;
-    riskChart.data.datasets[0].data = values;
-    riskChart.data.datasets[0].pointBackgroundColor = fillColors;
+    riskChart.data.labels                      = binKeys;
+    riskChart.data.datasets[0].data            = binCounts;
+    riskChart.data.datasets[0].backgroundColor = binColors;
+    riskChart.data.datasets[1].data            = kdeScaled;
     riskChart.update('none');
   } else {
+    if (!visCells.length) return;
     const ctx = document.getElementById('eda-risk').getContext('2d');
     riskChart = new Chart(ctx, {
-      type: 'line',
+      type: 'bar',
       data: {
-        labels,
-        datasets: [{
-          data: values,
-          borderColor: '#1A1A1A',
-          borderWidth: 1.5,
-          fill: true,
-          backgroundColor: (context) => {
-            const chart = context.chart;
-            const { ctx: c, chartArea } = chart;
-            if (!chartArea) return 'rgba(43,76,255,0.2)';
-            const grad = c.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
-            grad.addColorStop(0,   'rgba(43,76,255,0.30)');   // low risk
-            grad.addColorStop(0.36,'rgba(255,43,140,0.45)');  // HIGH zone
-            grad.addColorStop(0.64,'rgba(255,77,0,0.60)');    // CRITICAL zone
-            grad.addColorStop(1,   'rgba(255,77,0,0.70)');
-            return grad;
+        labels: binKeys,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Cell count',
+            data: binCounts,
+            backgroundColor: binColors,
+            borderColor: 'rgba(26,26,26,0.5)',
+            borderWidth: 1,
+            order: 2
           },
-          tension: 0.4,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          pointBackgroundColor: fillColors
-        }]
+          {
+            type: 'line',
+            label: 'Density',
+            data: kdeScaled,
+            borderColor: '#1A1A1A',
+            borderWidth: 2,
+            fill: false,
+            tension: 0.45,
+            pointRadius: 0,
+            pointHoverRadius: 3,
+            order: 1
+          }
+        ]
       },
       options: {
         ...CHART_DEFAULTS,
+        onClick: (event, elements) => {
+          const bar = elements.find(e => e.datasetIndex === 0);
+          if (!bar) return;
+          const key = +binKeys[bar.index];
+          let tier;
+          if (key >= RISK_CRIT_THRESH)      tier = 'CRITICAL';
+          else if (key >= RISK_HIGH_THRESH)  tier = 'HIGH';
+          else                               tier = 'HIGH'; // still in filtered set
+          if (state.activeTiers.has(tier) && state.activeTiers.size === 1) {
+            ['CRITICAL','HIGH'].forEach(t => state.activeTiers.add(t));
+          } else {
+            state.activeTiers.clear();
+            state.activeTiers.add(tier);
+          }
+          document.querySelectorAll('.tier-btn').forEach(b => {
+            b.classList.toggle('on', state.activeTiers.has(b.dataset.tier));
+          });
+          applyFilters();
+          updateTemporalChart();
+        },
         plugins: {
           ...CHART_DEFAULTS.plugins,
+          legend: { display: false },
           tooltip: {
             ...CHART_DEFAULTS.plugins.tooltip,
             callbacks: {
               title: ctx => `Risk score: ${ctx[0].label}`,
-              label: ctx => ` density: ${ctx.parsed.y.toFixed(3)} · ${+ctx.label >= critThresh ? '🔴 CRITICAL zone' : +ctx.label >= highThresh ? '🔶 HIGH zone' : 'lower risk'}`
+              label: ctx => ctx.datasetIndex === 0
+                ? ` ${ctx.parsed.y} cells · ${+ctx.label >= RISK_CRIT_THRESH ? 'CRITICAL zone' : +ctx.label >= RISK_HIGH_THRESH ? 'HIGH zone' : 'lower'} · click to filter`
+                : ` KDE density curve`
             }
-          },
-          annotation: undefined
+          }
         },
         scales: {
-          x: { ...CHART_DEFAULTS.scales.x, ticks: { ...CHART_DEFAULTS.scales.x.ticks, maxTicksLimit: 8, callback: (v, i) => i % 4 === 0 ? labels[i] : '' } },
-          y: { ...CHART_DEFAULTS.scales.y, ticks: { display: false }, grid: { display: false }, title: { display: true, text: 'Density', font: { family: 'JetBrains Mono', size: 8 }, color: '#999' } }
+          x: { ...CHART_DEFAULTS.scales.x, ticks: { ...CHART_DEFAULTS.scales.x.ticks, maxTicksLimit: 7, callback: (v, i) => i % 3 === 0 ? binKeys[i] : '' } },
+          y: { ...CHART_DEFAULTS.scales.y, ticks: { font: { family: 'JetBrains Mono', size: 8 }, color: '#666' }, title: { display: true, text: 'Cell count', font: { family: 'JetBrains Mono', size: 8 }, color: '#999' } }
         }
       }
     });
@@ -1913,30 +1955,34 @@ function updateTemporalChart() {
   const data = computeTemporalData(cells);
   if (!data) return;
 
-  // Use neutral slate palette — no cluster colors to avoid confusion
-  const BASE_COLOR  = 'rgba(80, 90, 110, 0.75)';
-  const HIGH_COLOR  = 'rgba(80, 90, 110, 1.0)';
-  const LOW_COLOR   = 'rgba(80, 90, 110, 0.40)';
+  // Brown gradient: light sand (low severity) → dark espresso (high severity)
+  function brownColor(t) {
+    // t = 0.0 (lowest) → 1.0 (highest)
+    const r = Math.round(215 + t * (78  - 215));
+    const g = Math.round(185 + t * (38  - 185));
+    const b = Math.round(140 + t * (8   - 140));
+    const a = 0.40 + t * 0.60;
+    return `rgba(${r},${g},${b},${a.toFixed(2)})`;
+  }
+  function valuesToBrownColors(vals) {
+    const mn = Math.min(...vals), mx = Math.max(...vals);
+    const range = mx - mn || 1;
+    return vals.map(v => brownColor((v - mn) / range));
+  }
 
   let labels, values, colors;
   if (temporalView === 'daily') {
-    // DAILY = 24-hour breakdown
     labels = DAY_LABELS;
     values = data.hourly;
-    const peak = Math.max(...values);
-    colors = values.map(v => v >= peak * 0.92 ? HIGH_COLOR : v <= peak * 0.55 ? LOW_COLOR : BASE_COLOR);
+    colors = valuesToBrownColors(values);
   } else if (temporalView === 'weekly') {
-    // WEEKLY = Mon-Sun breakdown
     labels = WEEK_LABELS;
     values = data.daily;
-    const peak = Math.max(...values);
-    colors = values.map(v => v >= peak * 0.92 ? HIGH_COLOR : v <= peak * 0.55 ? LOW_COLOR : BASE_COLOR);
+    colors = valuesToBrownColors(values);
   } else {
-    // MONTHLY = Jan-Dec seasonal
     labels = MONTH_LABELS;
     values = data.monthly;
-    const peak = Math.max(...values);
-    colors = values.map(v => v >= peak * 0.92 ? HIGH_COLOR : v <= peak * 0.55 ? LOW_COLOR : BASE_COLOR);
+    colors = valuesToBrownColors(values);
   }
 
   if (temporalChart) {
@@ -1953,6 +1999,7 @@ function updateTemporalChart() {
         responsive: true,
         maintainAspectRatio: false,
         animation: { duration: 280 },
+        layout: { padding: { bottom: 2 } },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -1965,7 +2012,7 @@ function updateTemporalChart() {
           }
         },
         scales: {
-          x: { grid:{color:'#E8E4D8'}, ticks:{font:{family:'JetBrains Mono',size:9},color:'#444',maxRotation:0,autoSkip:false} },
+          x: { grid:{color:'#E8E4D8'}, ticks:{font:{family:'JetBrains Mono',size:9},color:'#444',maxRotation:0,autoSkip:false,padding:4} },
           y: { grid:{color:'#E8E4D8'}, ticks:{font:{family:'JetBrains Mono',size:8},color:'#666',callback:v=>v+'%'}, beginAtZero:true, title:{display:true,text:'Severe Rate %',font:{family:'JetBrains Mono',size:8},color:'#888'} }
         }
       }
