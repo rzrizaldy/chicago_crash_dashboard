@@ -828,6 +828,63 @@
       transition: opacity 0.1s;
     }
     #guide-got-it:hover { opacity: 0.8; }
+
+    /* ── Data Badge + Export Button ─────────────────────────────────── */
+    .tb-data-badge {
+      font-size: 9px; letter-spacing: 0.07em;
+      color: #aaa; border: 1px solid #444;
+      padding: 3px 9px; white-space: nowrap;
+    }
+    .tb-data-badge b { color: var(--green); font-weight: 700; }
+    #export-btn {
+      display: flex; align-items: center; gap: 5px;
+      background: transparent;
+      border: 2px solid var(--green);
+      color: var(--green);
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700; font-size: 10px;
+      letter-spacing: 0.1em;
+      padding: 4px 11px; cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+    }
+    #export-btn:hover { background: var(--green); color: var(--ink); }
+
+    /* ── Risk Formula Tooltip ───────────────────────────────────────── */
+    .formula-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 13px; height: 13px;
+      background: var(--blueprint); color: var(--paper);
+      font-size: 8px; font-weight: 800;
+      cursor: pointer; flex-shrink: 0;
+      border: none; font-family: 'Space Grotesk', sans-serif;
+      vertical-align: middle; margin-left: 4px;
+    }
+    .formula-popup {
+      display: none;
+      background: var(--ink); color: var(--paper);
+      border: 2px solid var(--blueprint);
+      padding: 9px 11px; margin-top: 5px;
+      font-size: 8.5px; line-height: 1.65;
+      letter-spacing: 0.04em;
+    }
+    .formula-popup.open { display: block; }
+    .formula-popup b { color: var(--blueprint); }
+    .formula-popup .f-row { display:flex; justify-content:space-between; gap:8px; border-bottom:1px solid #333; padding:2px 0; }
+    .formula-popup .f-row:last-child { border-bottom:none; }
+
+    /* ── Regression Annotation ──────────────────────────────────────── */
+    .r2-badge {
+      font-size: 8px; color: #888; letter-spacing: 0.05em;
+      padding: 0 10px 4px; text-align: right;
+    }
+
+    /* ── Print / Export Styles ──────────────────────────────────────── */
+    @media print {
+      body { overflow: visible !important; height: auto !important; }
+      #topbar, #app, #temporal-bar, #status-bar { display: none !important; }
+      #print-report { display: block !important; }
+    }
+    #print-report { display: none; }
   </style>
 </head>
 <body>
@@ -839,6 +896,8 @@
     <div class="tb-title">CRASH RISK INTELLIGENCE PLATFORM</div>
   </div>
   <div class="tb-right">
+    <div class="tb-data-badge"><b>2015–2023</b> · 206K+ CRASHES · CHICAGO IL</div>
+    <button id="export-btn" title="Export filtered view as printable report">⬇ EXPORT</button>
     <button id="guide-btn" title="How to use this dashboard">i</button>
   </div>
 </div>
@@ -1020,6 +1079,7 @@
       <div class="eda-card sec-block">
         <div class="eda-card-title">Hit &amp; Run vs Severe Rate</div>
         <div class="eda-canvas-wrap" style="height:180px"><canvas id="eda-scatter"></canvas></div>
+        <div class="r2-badge" id="scatter-r2">computing regression…</div>
         <div class="eda-insight">Strong correlation — hit &amp; run cells show elevated severity</div>
       </div>
 
@@ -1153,14 +1213,31 @@
           <div style="background:#F8F6EF;border:1.5px solid var(--grid);padding:5px 7px">
             <div style="font-size:8px;color:#888;letter-spacing:0.07em">SEVERE RATE</div>
             <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:16px;line-height:1.1;color:var(--orange)" id="insp-sev-rate">—</div>
+            <div style="font-size:7.5px;color:#999;margin-top:1px" id="insp-sev-denom">— of — crashes</div>
           </div>
           <div style="background:#F8F6EF;border:1.5px solid var(--grid);padding:5px 7px">
             <div style="font-size:8px;color:#888;letter-spacing:0.07em">SEVERE</div>
             <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:16px;line-height:1.1;color:var(--ink)" id="insp-severe">—</div>
+            <div style="font-size:7.5px;color:#999;margin-top:1px">injuries + fatalities</div>
           </div>
-          <div style="background:#F8F6EF;border:1.5px solid var(--grid);padding:5px 7px">
-            <div style="font-size:8px;color:#888;letter-spacing:0.07em">RISK SCORE</div>
-            <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:13px;line-height:1.1;color:var(--ink)" id="insp-risk">—</div>
+          <div style="background:#F8F6EF;border:1.5px solid var(--grid);padding:5px 7px;grid-column:1/-1">
+            <div style="font-size:8px;color:#888;letter-spacing:0.07em;display:flex;align-items:center;justify-content:space-between">
+              RISK SCORE
+              <button class="formula-btn" id="formula-toggle" title="How is this calculated?">?</button>
+            </div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:13px;line-height:1.3;color:var(--ink)" id="insp-risk">—</div>
+            <div class="formula-popup" id="formula-popup">
+              <b>How Risk Score is calculated:</b><br><br>
+              <div class="f-row"><span>Crash frequency (normalized)</span><span style="color:#aaa">weight: 30%</span></div>
+              <div class="f-row"><span>Severity rate (shrunk Bayes est.)</span><span style="color:#aaa">weight: 35%</span></div>
+              <div class="f-row"><span>Mean vehicle speed</span><span style="color:#aaa">weight: 15%</span></div>
+              <div class="f-row"><span>Temporal concentration (night/rush)</span><span style="color:#aaa">weight: 12%</span></div>
+              <div class="f-row"><span>DBSCAN spatial density flag</span><span style="color:#aaa">weight: 8%</span></div>
+              <br>
+              <b>Tiers:</b> CRITICAL ≥ 0.14 · HIGH ≥ 0.08 · MONITOR ≥ 0.04 · BASELINE &lt; 0.04<br>
+              <b>Range:</b> 0.00 (safest) → ~0.22 (worst observed)<br>
+              <b>Source:</b> Chicago Data Portal 2015–2023 · 206K+ records
+            </div>
           </div>
         </div>
 
@@ -1605,8 +1682,11 @@ function renderInspector(c) {
   document.getElementById('insp-crashes').textContent  = c.crashes.toLocaleString();
   document.getElementById('insp-severe').textContent   = c.severe;
   document.getElementById('insp-sev-rate').textContent = c.severeRate.toFixed(2) + '%';
+  document.getElementById('insp-sev-denom').textContent = c.severe + ' of ' + c.crashes.toLocaleString() + ' crashes';
   document.getElementById('insp-speed').textContent    = c.speed.toFixed(1) + ' mph';
   document.getElementById('insp-risk').textContent     = c.riskScore.toFixed(4);
+  // Close formula popup on new cell select
+  document.getElementById('formula-popup').classList.remove('open');
 
   const bars = [
     ['rush', c.pctRushHour],
@@ -1985,18 +2065,42 @@ let _top10Sorted = []; // stored for click reference
   });
 })();
 
-// 3. Scatter: Hit & Run % vs Severe Rate (sample 80 cells max)
+// 3. Scatter: Hit & Run % vs Severe Rate (sample 80 cells max) + regression line
 (function() {
   const sample = CELLS.slice().sort(()=>Math.random()-0.5).slice(0,80);
+  // Linear regression on all CRITICAL+HIGH cells
+  const regPts = CELLS.filter(c=>c.tier==='CRITICAL'||c.tier==='HIGH').map(c=>({x:c.pctHitRun,y:c.severeRate}));
+  function linReg(pts) {
+    const n=pts.length; if(n<2) return null;
+    const sx=pts.reduce((s,p)=>s+p.x,0), sy=pts.reduce((s,p)=>s+p.y,0);
+    const sxy=pts.reduce((s,p)=>s+p.x*p.y,0), sx2=pts.reduce((s,p)=>s+p.x*p.x,0);
+    const m=(n*sxy-sx*sy)/(n*sx2-sx*sx), b=(sy-m*sx)/n;
+    const ymean=sy/n;
+    const ssTot=pts.reduce((s,p)=>s+(p.y-ymean)**2,0);
+    const ssRes=pts.reduce((s,p)=>s+(p.y-(m*p.x+b))**2,0);
+    return { m, b, r2: +(1-ssRes/ssTot).toFixed(3) };
+  }
+  const reg = linReg(regPts);
+  const xVals = regPts.map(p=>p.x);
+  const xMin=Math.min(...xVals), xMax=Math.max(...xVals);
+  const regLine = reg ? [{x:xMin, y:reg.m*xMin+reg.b},{x:xMax, y:reg.m*xMax+reg.b}] : [];
+  // Show R² in the insight text
+  if (reg) {
+    const el = document.querySelector('#eda-scatter').closest('.eda-card').querySelector('.eda-insight');
+    if (el) el.textContent = `Hit & run rate correlates with severity (R² = ${reg.r2}, n=${regPts.length} cells)`;
+    const r2el = document.getElementById('scatter-r2');
+    if (r2el) r2el.textContent = `regression line (R² = ${reg.r2}, n = ${regPts.length} CRITICAL + HIGH cells)`;
+  }
   new Chart(document.getElementById('eda-scatter'), {
     type: 'scatter',
     data: {
       datasets: [
-        { label: 'CRITICAL', data: sample.filter(c=>c.tier==='CRITICAL').map(c=>({x:c.pctHitRun, y:c.severeRate})), backgroundColor: 'rgba(255,77,0,0.75)', borderColor: '#1A1A1A', borderWidth: 1, pointRadius: 5 },
-        { label: 'HIGH',     data: sample.filter(c=>c.tier==='HIGH').map(c=>({x:c.pctHitRun, y:c.severeRate})),     backgroundColor: 'rgba(255,43,140,0.55)', borderColor: '#1A1A1A', borderWidth: 1, pointRadius: 4 }
+        { label: 'CRITICAL', data: sample.filter(c=>c.tier==='CRITICAL').map(c=>({x:c.pctHitRun, y:c.severeRate})), backgroundColor: 'rgba(255,77,0,0.75)', borderColor: '#1A1A1A', borderWidth: 1, pointRadius: 5, order: 2 },
+        { label: 'HIGH',     data: sample.filter(c=>c.tier==='HIGH').map(c=>({x:c.pctHitRun, y:c.severeRate})),     backgroundColor: 'rgba(255,43,140,0.55)', borderColor: '#1A1A1A', borderWidth: 1, pointRadius: 4, order: 3 },
+        { type: 'line', label: 'Trend', data: regLine, borderColor: '#1A1A1A', borderWidth: 2, borderDash: [4,3], fill: false, pointRadius: 0, tension: 0, order: 1 }
       ]
     },
-    options: { ...CHART_DEFAULTS, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: true, labels: { font: { family: 'JetBrains Mono', size: 9 }, color: '#1A1A1A', boxWidth: 12, padding: 8 } } },
+    options: { ...CHART_DEFAULTS, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: true, labels: { font: { family: 'JetBrains Mono', size: 9 }, color: '#1A1A1A', boxWidth: 12, padding: 8, filter: item => item.datasetIndex < 2 } } },
       scales: { x: { ...CHART_DEFAULTS.scales.x, title: { display: true, text: 'Hit & Run %', font: { size: 9, family: 'JetBrains Mono' }, color: '#777' } }, y: { ...CHART_DEFAULTS.scales.y, title: { display: true, text: 'Severe Rate %', font: { size: 9, family: 'JetBrains Mono' }, color: '#777' } } }
     }
   });
@@ -2575,6 +2679,174 @@ applyFilters();
     setTimeout(openGuide, 600); // small delay so map loads first
   }
 })();
+
+/* ── Formula Toggle ─────────────────────────────────────────────── */
+document.getElementById('formula-toggle').addEventListener('click', () => {
+  document.getElementById('formula-popup').classList.toggle('open');
+});
+
+/* ── Export Report ──────────────────────────────────────────────── */
+document.getElementById('export-btn').addEventListener('click', function() {
+  const visIdx = getVisibleIndices();
+  const visCells = visIdx.map(i => CELLS[i]);
+  const critCount = visCells.filter(c=>c.tier==='CRITICAL').length;
+  const highCount = visCells.filter(c=>c.tier==='HIGH').length;
+  const avgRisk   = visCells.length ? (visCells.reduce((s,c)=>s+c.riskScore,0)/visCells.length).toFixed(4) : '—';
+
+  // Build top-10 hotspots (by neighborhood avg risk, visible cells only)
+  const nbMap = {};
+  visCells.forEach(c => {
+    if (!nbMap[c.neighborhood]) nbMap[c.neighborhood] = { crashes:0, severe:0, riskSum:0, n:0, clusters:{} };
+    nbMap[c.neighborhood].crashes  += c.crashes;
+    nbMap[c.neighborhood].severe   += c.severe;
+    nbMap[c.neighborhood].riskSum  += c.riskScore;
+    nbMap[c.neighborhood].n++;
+    nbMap[c.neighborhood].clusters[c.cluster] = (nbMap[c.neighborhood].clusters[c.cluster]||0)+1;
+  });
+  const hotspots = Object.entries(nbMap)
+    .map(([nb, d]) => ({
+      nb, crashes:d.crashes, severe:d.severe, cells:d.n,
+      sevPct: d.crashes ? (d.severe/d.crashes*100).toFixed(1) : '0.0',
+      avgRisk: (d.riskSum/d.n).toFixed(4),
+      topCluster: Object.entries(d.clusters).sort((a,b)=>b[1]-a[1])[0]?.[0]
+    }))
+    .sort((a,b) => +b.avgRisk - +a.avgRisk)
+    .slice(0, 10);
+
+  // Build cluster breakdown (visible cells only)
+  const clRows = META.clusterIds.map(cid => {
+    const m = CLUSTER_META[cid]; if (!m) return null;
+    const cells = visCells.filter(c=>c.cluster===cid);
+    if (!cells.length) return null;
+    const avg = (cells.reduce((s,c)=>s+c.riskScore,0)/cells.length).toFixed(4);
+    const crit = cells.filter(c=>c.tier==='CRITICAL').length;
+    return { name:m.name, sub:m.sub, count:cells.length, avg, crit };
+  }).filter(Boolean);
+
+  // Active filters summary
+  const filterLines = [
+    `Tiers: ${[...state.activeTiers].join(', ') || 'none'}`,
+    `Cluster: ${state.activeCluster === 'all' ? 'All clusters' : (CLUSTER_META[+state.activeCluster]?.name || state.activeCluster)}`,
+    `Region: ${state.activeRegion || 'All regions'}`,
+    `Neighborhood: ${state.activeNeighborhood || 'All neighborhoods'}`,
+  ];
+  const genDate = new Date().toLocaleString('en-US', { month:'long', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  const hotspotRows = hotspots.map((h,i) => `
+    <tr>
+      <td style="padding:6px 10px;font-weight:700;color:#888">#${i+1}</td>
+      <td style="padding:6px 10px;font-weight:700">${h.nb}</td>
+      <td style="padding:6px 10px;text-align:right">${h.crashes.toLocaleString()}</td>
+      <td style="padding:6px 10px;text-align:right">${h.severe.toLocaleString()}</td>
+      <td style="padding:6px 10px;text-align:right;color:${+h.sevPct>=5?'#FF4D00':+h.sevPct>=3?'#FF2B8C':'#333'};font-weight:700">${h.sevPct}%</td>
+      <td style="padding:6px 10px;text-align:right;font-weight:700">${h.avgRisk}</td>
+      <td style="padding:6px 10px;font-size:10px;color:#555">${CLUSTER_META[+h.topCluster]?.name || '—'}</td>
+      <td style="padding:6px 10px">${h.cells}</td>
+    </tr>`).join('');
+
+  const clusterRows = clRows.map(r => `
+    <tr>
+      <td style="padding:6px 10px;font-weight:700">${r.name}</td>
+      <td style="padding:6px 10px;font-size:10px;color:#555">${r.sub}</td>
+      <td style="padding:6px 10px;text-align:right">${r.count}</td>
+      <td style="padding:6px 10px;text-align:right;font-weight:700">${r.avg}</td>
+      <td style="padding:6px 10px;text-align:right;color:#FF4D00;font-weight:700">${r.crit}</td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html><head>
+  <meta charset="UTF-8">
+  <title>Chicago Crash Risk — Tactical Briefing</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'JetBrains Mono',monospace;background:#fff;color:#1A1A1A;padding:32px 40px;max-width:900px;margin:auto;font-size:11px}
+    h1{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:800;letter-spacing:0.1em;margin-bottom:2px}
+    h2{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.1em;margin:20px 0 8px;border-bottom:2px solid #1A1A1A;padding-bottom:4px;text-transform:uppercase}
+    .meta{font-size:9px;color:#888;letter-spacing:0.07em;margin-bottom:4px}
+    .header{border-bottom:3px solid #1A1A1A;padding-bottom:14px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:flex-end}
+    .kpi-row{display:flex;gap:12px;margin-bottom:20px}
+    .kpi{border:2px solid #1A1A1A;padding:10px 14px;flex:1;text-align:center}
+    .kpi-val{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:800;line-height:1}
+    .kpi-label{font-size:8px;letter-spacing:0.1em;color:#888;margin-top:3px}
+    .filters{background:#F2F0E9;border:1.5px solid #D1D1D1;padding:8px 12px;font-size:9px;letter-spacing:0.06em;margin-bottom:20px;line-height:1.8}
+    table{width:100%;border-collapse:collapse;font-size:10px}
+    thead tr{background:#1A1A1A;color:#F2F0E9}
+    thead th{padding:6px 10px;text-align:left;font-weight:700;letter-spacing:0.08em;font-size:9px}
+    tbody tr:nth-child(even){background:#F8F6EF}
+    tbody tr:hover{background:#F2F0E9}
+    .formula{background:#F2F0E9;border-left:4px solid #2B4CFF;padding:12px 14px;font-size:9.5px;line-height:1.8;margin-top:8px}
+    .formula b{color:#2B4CFF}
+    .footer{margin-top:28px;padding-top:12px;border-top:2px solid #D1D1D1;font-size:8.5px;color:#888;display:flex;justify-content:space-between}
+    @media print{body{padding:20px 24px}}
+  </style>
+</head><body>
+  <div class="header">
+    <div>
+      <div class="meta">TACTICAL BRIEFING · CHICAGO OFFICE OF TRANSPORTATION SAFETY</div>
+      <h1>CHICAGO CRASH RISK INTELLIGENCE PLATFORM</h1>
+      <div class="meta" style="margin-top:4px">Data: Chicago Data Portal 2015–2023 · 206,135+ crash records · Grid resolution: 0.005° (~400m)</div>
+    </div>
+    <div style="text-align:right;font-size:9px;color:#888;white-space:nowrap">
+      Generated ${genDate}<br>
+      <span style="color:#2B4CFF">rzrizaldy.github.io/chicago_crash_dashboard</span>
+    </div>
+  </div>
+
+  <div class="filters">
+    <b style="letter-spacing:0.1em">FILTERS APPLIED:</b> &nbsp;${filterLines.join(' &nbsp;·&nbsp; ')}
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-val">${visCells.length}</div><div class="kpi-label">VISIBLE CELLS</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:#FF4D00">${critCount}</div><div class="kpi-label">CRITICAL</div></div>
+    <div class="kpi"><div class="kpi-val" style="color:#FF2B8C">${highCount}</div><div class="kpi-label">HIGH</div></div>
+    <div class="kpi"><div class="kpi-val" style="font-size:18px">${avgRisk}</div><div class="kpi-label">AVG RISK SCORE</div></div>
+    <div class="kpi"><div class="kpi-val">${(critCount+highCount>0 ? ((critCount/(critCount+highCount))*100).toFixed(0) : 0)}%</div><div class="kpi-label">CRITICAL SHARE</div></div>
+  </div>
+
+  <h2>Critical Hotspots — Top 10 Neighborhoods</h2>
+  <table>
+    <thead><tr>
+      <th>RANK</th><th>NEIGHBORHOOD</th><th style="text-align:right">CRASHES</th>
+      <th style="text-align:right">SEVERE</th><th style="text-align:right">SEV RATE</th>
+      <th style="text-align:right">AVG RISK</th><th>CLUSTER TYPE</th><th>CELLS</th>
+    </tr></thead>
+    <tbody>${hotspotRows}</tbody>
+  </table>
+
+  <h2>Cluster Pattern Breakdown</h2>
+  <table>
+    <thead><tr>
+      <th>CLUSTER</th><th>PATTERN DESCRIPTION</th>
+      <th style="text-align:right">CELLS</th><th style="text-align:right">AVG RISK</th>
+      <th style="text-align:right">CRITICAL</th>
+    </tr></thead>
+    <tbody>${clusterRows}</tbody>
+  </table>
+
+  <h2>Risk Score Methodology</h2>
+  <div class="formula">
+    <b>Formula</b> — Composite index derived from 2015–2023 Chicago Traffic Crash records (IDOT severity classifications):<br><br>
+    <b>Risk Score</b> = 0.30 × crash_frequency_norm + 0.35 × severity_rate_shrunk + 0.15 × speed_norm + 0.12 × temporal_concentration + 0.08 × dbscan_density_flag<br><br>
+    <b>Tier thresholds:</b> CRITICAL ≥ 0.14 · HIGH ≥ 0.08 · MONITOR ≥ 0.04 · BASELINE &lt; 0.04<br>
+    <b>Severity</b> = crashes resulting in Type A injury (incapacitating) or fatality per IDOT crash severity coding<br>
+    <b>Shrunk severity rate</b> = Bayesian-smoothed estimate (reduces noise for low-crash cells)<br>
+    <b>Temporal concentration</b> = weighted average of night%, rush-hour%, weekend% of crashes per cell<br><br>
+    This score allocates safety resources by combining frequency, severity, and crash conditions.
+    It does not distinguish vehicle-only vs. pedestrian/cyclist crashes — raw crash records include all parties.
+  </div>
+
+  <div class="footer">
+    <span>Source: <a href="https://data.cityofchicago.org/Transportation/Traffic-Crashes-Crashes/85ca-t3if">Chicago Data Portal — Traffic Crashes (2015–2023)</a></span>
+    <span>rzrizaldy.github.io/chicago_crash_dashboard · Generated ${genDate}</span>
+  </div>
+
+  <script>window.onload = () => { window.print(); }<\/script>
+</body></html>`;
+
+  const w = window.open('', '_blank', 'width=960,height=700');
+  if (w) { w.document.write(html); w.document.close(); }
+});
 </script>
 </body>
 </html>
