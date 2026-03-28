@@ -13,6 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   <script src="cells_data.js"></script>
   <script src="neighborhoods.js"></script>
+  <!-- eda_data.js intentionally not loaded — charts generated from CELLS data -->
   <style>
     /* ── Design Tokens ─────────────────────────────────────────────── */
     :root {
@@ -141,6 +142,7 @@
       flex: 1;
       position: relative;
       min-width: 0;
+      min-height: 0;
     }
     #map {
       position: absolute;
@@ -253,9 +255,9 @@
       box-shadow: 3px 3px 0 var(--ink);
     }
     .cl-btn.on {
-      background: var(--blueprint);
+      background: var(--ink);
       color: var(--paper);
-      border-color: var(--blueprint);
+      border-color: var(--ink);
       box-shadow: none;
     }
 
@@ -545,6 +547,157 @@
       padding: 5px 9px !important;
     }
     .leaflet-tooltip-top::before { display: none !important; }
+    .leaflet-popup-content-wrapper {
+      font-family: 'JetBrains Mono', monospace !important;
+      border-radius: 0 !important;
+      border: 3px solid #1A1A1A !important;
+      box-shadow: 5px 5px 0 rgba(0,0,0,0.25) !important;
+      padding: 0 !important;
+      background: var(--paper) !important;
+    }
+    .leaflet-popup-content {
+      margin: 9px 13px !important;
+      font-size: 10px !important;
+      line-height: 1.65 !important;
+      min-width: 165px;
+      color: var(--ink);
+    }
+    .leaflet-popup-tip-container { display: none !important; }
+    .leaflet-popup-close-button {
+      font-size: 16px !important;
+      right: 5px !important; top: 3px !important;
+      color: var(--ink) !important;
+    }
+
+    /* ── Center column (map + temporal bar) ─────────────────────────── */
+    #center-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+    /* override: map-container now lives inside center-col */
+    #map-container {
+      flex: 1 !important;
+      min-height: 0 !important;
+      min-width: 0 !important;
+    }
+
+    /* ── Temporal Trend Bar ──────────────────────────────────────────── */
+    #temporal-bar {
+      height: 168px;
+      flex-shrink: 0;
+      border-top: 3px solid var(--ink);
+      background: var(--paper);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .temporal-head {
+      display: flex;
+      align-items: center;
+      border-bottom: 2px solid var(--ink);
+      padding: 0 10px;
+      flex-shrink: 0;
+      height: 30px;
+      gap: 4px;
+    }
+    .temporal-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      margin-right: 8px;
+      border-left: 4px solid var(--blueprint);
+      padding-left: 8px;
+    }
+    .t-tab {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border: 2px solid var(--ink);
+      cursor: pointer;
+      background: transparent;
+      color: var(--ink);
+      letter-spacing: 0.06em;
+    }
+    .t-tab.on { background: var(--ink); color: var(--paper); }
+    #temporal-context {
+      font-size: 9px;
+      color: #888;
+      margin-left: auto;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .temporal-canvas-wrap {
+      flex: 1;
+      position: relative;
+      padding: 3px 8px 4px;
+    }
+
+    /* ── 3-card KPI grid ─────────────────────────────────────────────── */
+    .kpi-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+    .kpi-grid-3 .kpi-value { font-size: 18px; }
+
+    /* ── Improved Critical Hotspots table ───────────────────────────── */
+    .critical-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9px;
+    }
+    .critical-table th {
+      text-align: left;
+      font-size: 8px;
+      letter-spacing: 0.07em;
+      color: #777;
+      padding: 3px 3px;
+      border-bottom: 2px solid var(--ink);
+      font-weight: 700;
+    }
+    .critical-table td {
+      padding: 5px 3px;
+      border-bottom: 1px solid var(--grid);
+      vertical-align: middle;
+    }
+    .critical-table tr:last-child td { border-bottom: none; }
+    .critical-table tr { cursor: pointer; }
+    .critical-table tr:hover td { background: #E8E4D8; }
+    .crit-rank {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800;
+      color: var(--orange);
+      font-size: 13px;
+    }
+    .peak-badge {
+      font-size: 7px;
+      font-weight: 700;
+      padding: 1px 3px;
+      border: 1.5px solid;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .peak-rush    { color: var(--orange);    border-color: var(--orange); }
+    .peak-night   { color: #444;             border-color: #444; }
+    .peak-weekend { color: var(--blueprint); border-color: var(--blueprint); }
+
+    /* ── Neighborhood tree (optgroup select) ────────────────────────── */
+    select.f-select optgroup {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 10px;
+      color: #777;
+    }
+    select.f-select option {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding-left: 4px;
+    }
   </style>
 </head>
 <body>
@@ -554,7 +707,6 @@
   <div class="tb-left">
     <div class="tb-logo">CHICAGO</div>
     <div class="tb-title">CRASH RISK INTELLIGENCE PLATFORM</div>
-    <div class="tb-sub" id="tb-loaded">■ 206 PRIORITY CELLS LOADED</div>
   </div>
   <div class="tb-right">
     <div class="tb-chip crit">CRITICAL: 30</div>
@@ -600,22 +752,18 @@
       <div class="sec-block">
         <div class="sec-head">System Metrics</div>
         <div class="sec-body">
-          <div class="kpi-grid">
+          <div class="kpi-grid-3">
             <div class="kpi-card">
-              <div class="kpi-label">Priority<br>Cells</div>
+              <div class="kpi-label">Visible<br>Cells</div>
               <div class="kpi-value" id="kpi-total">206</div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-label">Avg Crashes<br>Per Cell</div>
-              <div class="kpi-value">99<span class="kpi-unit">.9</span></div>
-            </div>
-            <div class="kpi-card">
               <div class="kpi-label">Critical<br>Zones</div>
-              <div class="kpi-value" style="color:var(--orange)">30</div>
+              <div class="kpi-value" style="color:var(--orange)" id="kpi-crit">30</div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-label">Avg Severe<br>Rate</div>
-              <div class="kpi-value">2.78<span class="kpi-unit">%</span></div>
+              <div class="kpi-label">Avg Sev<br>Rate</div>
+              <div class="kpi-value" id="kpi-sev">2.78<span class="kpi-unit">%</span></div>
             </div>
           </div>
         </div>
@@ -630,27 +778,9 @@
       </div>
 
       <div class="eda-card sec-block">
-        <div class="eda-card-title">Temporal Breakdown <span style="color:#999;font-weight:400">avg %</span></div>
-        <div class="eda-canvas-wrap"><canvas id="eda-temporal"></canvas></div>
-        <div class="eda-insight">Rush hour dominates — 33% of crashes happen 7–9am & 4–7pm</div>
-      </div>
-
-      <div class="eda-card sec-block">
-        <div class="eda-card-title">Top 10 Neighborhoods <span style="color:#999;font-weight:400">crashes</span></div>
-        <div class="eda-canvas-wrap" style="height:210px"><canvas id="eda-topnb"></canvas></div>
-        <div class="eda-insight">West Town & Austin lead total crash volume in priority cells</div>
-      </div>
-
-      <div class="eda-card sec-block">
-        <div class="eda-card-title">Speed Distribution <span style="color:#999;font-weight:400">mph</span></div>
-        <div class="eda-canvas-wrap"><canvas id="eda-speed"></canvas></div>
-        <div class="eda-insight">Most cells cluster 29–32 mph — speed limit corridors at risk</div>
-      </div>
-
-      <div class="eda-card sec-block">
-        <div class="eda-card-title">Severe Rate by Tier <span style="color:#999;font-weight:400">%</span></div>
-        <div class="eda-canvas-wrap"><canvas id="eda-sev"></canvas></div>
-        <div class="eda-insight">CRITICAL cells average 3.9% severe rate vs 2.6% for HIGH</div>
+        <div class="eda-card-title">Top 10 Neighborhoods <span style="color:#999;font-weight:400">crashes · click bar to filter map</span></div>
+        <div class="eda-canvas-wrap" style="height:210px"><canvas id="eda-topnb" style="cursor:pointer"></canvas></div>
+        <div class="eda-insight">Click any bar to filter the map to that neighborhood</div>
       </div>
 
       <div class="eda-card sec-block">
@@ -675,25 +805,44 @@
 
   </aside>
 
-  <!-- ── MAP ────────────────────────────────────────────────────── -->
-  <div id="map-container">
-    <div id="map"></div>
+  <!-- ── CENTER COLUMN (map + temporal chart) ────────────────────── -->
+  <div id="center-col">
 
-    <!-- Custom zoom + layer controls -->
-    <div id="map-controls">
-      <button class="mc-btn" id="zoom-in" title="Zoom In">+</button>
-      <button class="mc-btn" id="zoom-out" title="Zoom Out">−</button>
-      <button class="mc-btn" id="layer-toggle-btn" style="width:auto;padding:0 10px;font-size:10px;letter-spacing:0.07em;">☰ LAYERS</button>
-      <div id="layer-panel">
-        <div class="lp-row"><input type="checkbox" id="lyr-cl0" checked> <label for="lyr-cl0"><span style="display:inline-block;width:10px;height:10px;background:#FF1A00;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>ZONE ALPHA</label></div>
-        <div class="lp-row"><input type="checkbox" id="lyr-cl2" checked> <label for="lyr-cl2"><span style="display:inline-block;width:10px;height:10px;background:#1A40FF;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>24H SURGE</label></div>
-        <div class="lp-row"><input type="checkbox" id="lyr-cl3" checked> <label for="lyr-cl3"><span style="display:inline-block;width:10px;height:10px;background:#00A86B;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>RUSH GRID</label></div>
-        <div class="lp-row"><input type="checkbox" id="lyr-cl4" checked> <label for="lyr-cl4"><span style="display:inline-block;width:10px;height:10px;background:#CC9900;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>PEAK PULSE</label></div>
-        <div class="lp-row"><input type="checkbox" id="lyr-cl8" checked> <label for="lyr-cl8"><span style="display:inline-block;width:10px;height:10px;background:#CC0066;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>SEVERITY APEX</label></div>
-        <div class="lp-row"><input type="checkbox" id="lyr-nb" checked> <label for="lyr-nb">Neighborhood Borders</label></div>
+    <div id="map-container">
+      <div id="map"></div>
+
+      <!-- Custom zoom + layer controls -->
+      <div id="map-controls">
+        <button class="mc-btn" id="zoom-in" title="Zoom In">+</button>
+        <button class="mc-btn" id="zoom-out" title="Zoom Out">−</button>
+        <button class="mc-btn" id="layer-toggle-btn" style="width:auto;padding:0 10px;font-size:10px;letter-spacing:0.07em;">☰ LAYERS</button>
+        <div id="layer-panel">
+          <div class="lp-row"><input type="checkbox" id="lyr-cl0" checked> <label for="lyr-cl0"><span style="display:inline-block;width:10px;height:10px;background:#FF1A00;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>1 · ZONE ALPHA</label></div>
+          <div class="lp-row"><input type="checkbox" id="lyr-cl2" checked> <label for="lyr-cl2"><span style="display:inline-block;width:10px;height:10px;background:#1A40FF;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>2 · 24H SURGE</label></div>
+          <div class="lp-row"><input type="checkbox" id="lyr-cl3" checked> <label for="lyr-cl3"><span style="display:inline-block;width:10px;height:10px;background:#00A86B;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>3 · RUSH GRID</label></div>
+          <div class="lp-row"><input type="checkbox" id="lyr-cl4" checked> <label for="lyr-cl4"><span style="display:inline-block;width:10px;height:10px;background:#CC9900;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>4 · PEAK PULSE</label></div>
+          <div class="lp-row"><input type="checkbox" id="lyr-cl8" checked> <label for="lyr-cl8"><span style="display:inline-block;width:10px;height:10px;background:#CC0066;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>5 · SEVERITY APEX</label></div>
+          <div class="lp-row"><input type="checkbox" id="lyr-dots" checked> <label for="lyr-dots">● Crash Dots</label></div>
+          <div class="lp-row"><input type="checkbox" id="lyr-nb" checked> <label for="lyr-nb">Neighborhood Borders</label></div>
+        </div>
       </div>
     </div>
-  </div>
+
+    <!-- TEMPORAL TREND CHART -->
+    <div id="temporal-bar">
+      <div class="temporal-head">
+        <span class="temporal-title">TEMPORAL TREND</span>
+        <button class="t-tab on" data-view="hourly">HOURLY</button>
+        <button class="t-tab" data-view="daily">DAILY</button>
+        <button class="t-tab" data-view="monthly">MONTHLY</button>
+        <span id="temporal-context">All 206 cells</span>
+      </div>
+      <div class="temporal-canvas-wrap">
+        <canvas id="temporal-chart"></canvas>
+      </div>
+    </div>
+
+  </div><!-- /center-col -->
 
   <!-- ── RIGHT PANEL ────────────────────────────────────────────── -->
   <aside id="right-panel">
@@ -703,22 +852,27 @@
       <div class="sec-head">Cluster Guide</div>
       <div style="padding:8px 12px;display:flex;flex-direction:column;gap:6px;">
         <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:11px;color:var(--orange);flex-shrink:0;min-width:16px">1</span>
           <span style="display:inline-block;width:9px;height:9px;background:#FF1A00;border:2px solid #1A1A1A;flex-shrink:0;margin-top:3px"></span>
           <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">ZONE ALPHA</b> — All 30 CRITICAL cells. Highest-priority deployment targets regardless of crash volume.</div>
         </div>
         <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:11px;color:var(--orange);flex-shrink:0;min-width:16px">2</span>
           <span style="display:inline-block;width:9px;height:9px;background:#1A40FF;border:2px solid #1A1A1A;flex-shrink:0;margin-top:3px"></span>
           <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">24H SURGE</b> — Highest volume (272 crashes avg). Active day &amp; night. Needs 24h enforcement.</div>
         </div>
         <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:11px;color:var(--orange);flex-shrink:0;min-width:16px">3</span>
           <span style="display:inline-block;width:9px;height:9px;background:#00A86B;border:2px solid #1A1A1A;flex-shrink:0;margin-top:3px"></span>
           <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">RUSH GRID</b> — 42.8% of crashes at peak hours. Target AM/PM commute windows (7–9am, 4–7pm).</div>
         </div>
         <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:11px;color:var(--orange);flex-shrink:0;min-width:16px">4</span>
           <span style="display:inline-block;width:9px;height:9px;background:#CC9900;border:2px solid #1A1A1A;flex-shrink:0;margin-top:3px"></span>
           <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">PEAK PULSE</b> — 62.5% commuter-driven. Low baseline risk but spikes during rush. Temporary signage priority.</div>
         </div>
         <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:11px;color:var(--orange);flex-shrink:0;min-width:16px">5</span>
           <span style="display:inline-block;width:9px;height:9px;background:#CC0066;border:2px solid #1A1A1A;flex-shrink:0;margin-top:3px"></span>
           <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">SEVERITY APEX</b> — Highest risk score (0.13) &amp; severe rate (3.81%). Low volume, high consequence. Immediate infrastructure review.</div>
         </div>
@@ -744,6 +898,10 @@
         <div class="stat-row">
           <span class="stat-label">GRID CENTER</span>
           <span class="stat-value" id="insp-grid" style="font-size:10px;">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">STREET/OSM</span>
+          <span class="stat-value" id="insp-street" style="font-size:9px;text-align:right;max-width:168px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
         </div>
         <div class="divider"></div>
         <div class="stat-row">
@@ -842,17 +1000,19 @@
       </div>
     </div>
 
-    <!-- TOP 5 CRITICAL ZONES -->
+    <!-- CRITICAL HOTSPOTS (Top 5 by avg risk score, grouped by neighborhood) -->
     <div class="sec-block">
-      <div class="sec-head">Top 5 Critical Zones</div>
-      <div class="sec-body">
-        <table class="top5-table" id="top5-table">
+      <div class="sec-head">Critical Hotspots</div>
+      <div class="sec-body" style="padding:8px 10px">
+        <table class="critical-table" id="top5-table">
           <thead>
             <tr>
               <th>#</th>
-              <th>NEIGHBORHOOD</th>
-              <th>CRASHES</th>
+              <th>ZONE</th>
+              <th>CRASH</th>
               <th>SEV%</th>
+              <th>CLUSTER</th>
+              <th>PEAK</th>
             </tr>
           </thead>
           <tbody id="top5-body"></tbody>
@@ -906,21 +1066,67 @@ const TIER_COLORS = {
 };
 const CLUSTER_COLORS = ['#2B4CFF','#FF4D00','#00B884','#FFD000','#FF2B8C','#9B59B6','#1ABC9C','#E67E22','#34495E'];
 
-/* ── Build Neighborhood Dropdown ──────────────────────────────── */
+/* ── Chicago Region → Neighborhood Hierarchy ───────────────────── */
+const CHICAGO_REGIONS = {
+  'FAR NORTH SIDE': ['Albany Park','Edgewater','Edison Park','Forest Glen','Jefferson Park','Lincoln Square','North Center','North Park','Norwood Park',"O'Hare",'Rogers Park','Uptown','West Ridge'],
+  'NORTH SIDE':     ['Lake View','Lincoln Park','Loop','Near North Side'],
+  'NORTHWEST SIDE': ['Avondale','Belmont Cragin','Dunning','Hermosa','Irving Park','Logan Square','Montclare','Portage Park'],
+  'WEST SIDE':      ['Austin','East Garfield Park','Humboldt Park','Lower West Side','Near West Side','North Lawndale','South Lawndale','West Garfield Park','West Town'],
+  'CENTRAL / LOOP': ['Armour Square','Douglas','Grand Boulevard','Hyde Park','Kenwood','Near South Side','Oakland','Washington Park','Woodlawn'],
+  'SOUTH SIDE':     ['Bridgeport','Burnside','Calumet Heights','Chatham','East Side','Fuller Park','Greater Grand Crossing','Pullman','Riverdale','Roseland','South Chicago','South Deering','South Shore','West Pullman'],
+  'SOUTHWEST SIDE': ['Archer Heights','Ashburn','Auburn Gresham','Beverly','Brighton Park','Chicago Lawn','Clearing','Englewood','Gage Park','Garfield Ridge','McKinley Park','Morgan Park','Mount Greenwood','New City','Washington Heights','West Elsdon','West Englewood','West Lawn'],
+  'FAR SOUTHEAST':  ['Avalon Park','Burnside','Calumet Heights','East Side','Hegewisch','Pullman','Riverdale','Roseland','South Deering'],
+};
+
+/* ── Build Neighborhood Dropdown (hierarchical optgroups) ──────── */
 const nbSelect = document.getElementById('nb-select');
-META.neighborhoods.sort().forEach(n => {
-  const opt = document.createElement('option');
-  opt.value = n; opt.textContent = n;
-  nbSelect.appendChild(opt);
+const allNbs = new Set(META.neighborhoods);
+
+// Build reverse lookup: neighborhood → region
+const nbToRegion = {};
+Object.entries(CHICAGO_REGIONS).forEach(([region, nbs]) => {
+  nbs.forEach(n => { nbToRegion[n] = region; });
 });
 
-/* ── Build Cluster Pills ───────────────────────────────────────── */
+// Collect which neighborhoods appear in data, grouped by region
+const regionGroups = {};
+allNbs.forEach(n => {
+  const region = nbToRegion[n] || 'OTHER';
+  if (!regionGroups[region]) regionGroups[region] = [];
+  regionGroups[region].push(n);
+});
+
+// Add regions in defined order, then any leftovers
+const regionOrder = [...Object.keys(CHICAGO_REGIONS), 'OTHER'];
+regionOrder.forEach(region => {
+  const nbs = regionGroups[region];
+  if (!nbs || nbs.length === 0) return;
+  const group = document.createElement('optgroup');
+  group.label = `── ${region}`;
+  nbs.sort().forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = n;
+    group.appendChild(opt);
+  });
+  nbSelect.appendChild(group);
+});
+
+/* ── Build Cluster Pills (with names and rank numbers) ─────────── */
 const clChips = document.getElementById('cluster-chips');
+const CLUSTER_RANK = { 0:1, 2:2, 3:3, 4:4, 8:5 };
 META.clusterIds.forEach(cid => {
   const btn = document.createElement('button');
   btn.className = 'cl-btn';
   btn.dataset.cl = cid;
-  btn.textContent = cid;
+  const cm = CLUSTER_META[cid];
+  const rank = CLUSTER_RANK[cid] || cid;
+  btn.textContent = `${rank}·${cm ? cm.name.split(' ')[0] : cid}`;
+  btn.title = cm ? cm.name : `Cluster ${cid}`;
+  if (cm) {
+    btn.style.borderColor = cm.color;
+    btn.style.color = cm.color;
+  }
   clChips.appendChild(btn);
 });
 
@@ -948,6 +1154,10 @@ map.getPane('neighborhoodPane').style.pointerEvents = 'auto';
 
 map.createPane('cellPane');
 map.getPane('cellPane').style.zIndex = 500;
+
+map.createPane('dotPane');
+map.getPane('dotPane').style.zIndex = 450;
+map.getPane('dotPane').style.pointerEvents = 'none'; // visual only; cell rects handle clicks
 
 /* ── Heatmap Layer — one per K-Means cluster ───────────────────── */
 // Each cluster gets a completely distinct vivid color palette
@@ -990,6 +1200,47 @@ META.clusterIds.forEach(cid => {
     { ...heatOpts, ...CLUSTER_HEAT[cid] }
   ).addTo(map);
 });
+
+/* ── Crash Dot Markers (visual, colored by cluster) ───────────── */
+const dotGroup = L.layerGroup().addTo(map);
+const crashDots = [];
+
+CELLS.forEach((c) => {
+  const cm = CLUSTER_META[c.cluster];
+  const dotLat = c.lat + META.gridSize / 2;
+  const dotLon = c.lon + META.gridSize / 2;
+  const dot = L.circleMarker([dotLat, dotLon], {
+    radius: 3.5,
+    fillColor: cm ? cm.color : '#999',
+    fillOpacity: 0.9,
+    color: 'rgba(0,0,0,0.5)',
+    weight: 0.8,
+    pane: 'dotPane',
+    interactive: false
+  });
+  dot.addTo(dotGroup);
+  crashDots.push(dot);
+});
+
+/* ── OSM Reverse Geocode ───────────────────────────────────────── */
+const _osmCache = {};
+async function fetchOSMStreet(lat, lon) {
+  const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+  if (_osmCache[key]) return _osmCache[key];
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=17`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'Chicago-Crash-Dashboard/1.0' } });
+    const d = await res.json();
+    const road = d.address?.road || d.address?.pedestrian || d.address?.path || d.address?.cycleway || '';
+    const cross = d.address?.house_number ? ` nr.${d.address.house_number}` : '';
+    const hood = d.address?.suburb || d.address?.neighbourhood || d.address?.quarter || '';
+    const result = road ? `${road}${cross}` : (hood || '—');
+    _osmCache[key] = result;
+    return result;
+  } catch {
+    return '—';
+  }
+}
 
 /* ── Invisible Click Rectangles ────────────────────────────────── */
 const cellRects = [];     // index → L.rectangle
@@ -1060,6 +1311,7 @@ map.on('click', function(e) {
     }
     document.getElementById('inspector-empty').style.display = '';
     document.getElementById('inspector-detail').style.display = 'none';
+    updateTemporalChart();
   }
 });
 
@@ -1096,6 +1348,16 @@ function renderInspector(c) {
     document.getElementById('tb-' + k).textContent = v.toFixed(1) + '%';
     document.getElementById('tbf-' + k).style.width = Math.min(v, 100) + '%';
   });
+
+  // OSM street lookup
+  const streetEl = document.getElementById('insp-street');
+  streetEl.textContent = 'loading…';
+  const dotLat = c.lat + META.gridSize / 2;
+  const dotLon = c.lon + META.gridSize / 2;
+  fetchOSMStreet(dotLat, dotLon).then(s => { streetEl.textContent = s; });
+
+  // Update temporal chart to this cell
+  updateTemporalChart();
 }
 
 /* ── Filtering ─────────────────────────────────────────────────── */
@@ -1145,10 +1407,28 @@ function applyFilters() {
   document.getElementById('sb-cells').textContent =
     `VISIBLE CELLS: ${vis} | FILTERED: ${total - vis} HIDDEN`;
 
-  // Update donut
+  // Update donut + KPI
   const critN = CELLS.filter((c,i) => visSet.has(i) && c.tier === 'CRITICAL').length;
   const highN = vis - critN;
   updateDonut(critN, highN);
+  document.getElementById('kpi-crit').textContent = critN;
+  const visCells = getVisibleIndices().map(i => CELLS[i]);
+  if (visCells.length > 0) {
+    const avgSev = visCells.reduce((s,c) => s + c.severeRate, 0) / visCells.length;
+    document.getElementById('kpi-sev').innerHTML = avgSev.toFixed(2) + '<span class="kpi-unit">%</span>';
+  }
+
+  // Sync crash dots visibility
+  CELLS.forEach((c, i) => {
+    if (visSet.has(i)) {
+      if (!dotGroup.hasLayer(crashDots[i])) dotGroup.addLayer(crashDots[i]);
+    } else {
+      dotGroup.removeLayer(crashDots[i]);
+    }
+  });
+
+  // Refresh temporal chart (no cell selected → re-aggregate)
+  if (state.selected === null) updateTemporalChart();
 }
 
 /* ── Donut Chart ───────────────────────────────────────────────── */
@@ -1192,30 +1472,66 @@ function updateDonut(critN, highN) {
 
 initDonut();
 
-/* ── Top 5 Critical Zones Table ────────────────────────────────── */
-function buildTop5() {
-  const crits = CELLS
-    .filter(c => c.tier === 'CRITICAL')
-    .sort((a,b) => b.total_crashes - a.total_crashes)
-    .slice(0,5);
+/* ── Critical Hotspots Table (grouped by neighborhood, ranked by avg risk) ── */
+function buildCriticalHotspots() {
+  // Group CRITICAL cells by neighborhood
+  const nbMap = {};
+  CELLS.filter(c => c.tier === 'CRITICAL').forEach(c => {
+    if (!nbMap[c.neighborhood]) nbMap[c.neighborhood] = { crashes:0, severe:0, risks:[], cells:[] };
+    nbMap[c.neighborhood].crashes += c.crashes;
+    nbMap[c.neighborhood].severe  += c.severe;
+    nbMap[c.neighborhood].risks.push(c.riskScore);
+    nbMap[c.neighborhood].cells.push(c);
+  });
+
+  const sorted = Object.entries(nbMap).map(([nb, d]) => {
+    // Dominant cluster
+    const freq = {};
+    d.cells.forEach(c => { freq[c.cluster] = (freq[c.cluster]||0)+1; });
+    const topCid = +Object.entries(freq).sort((a,b)=>b[1]-a[1])[0][0];
+    // Peak time
+    const rushAvg = d.cells.reduce((s,c)=>s+c.pctRushHour,0)/d.cells.length;
+    const nightAvg= d.cells.reduce((s,c)=>s+c.pctNight,   0)/d.cells.length;
+    const wkndAvg = d.cells.reduce((s,c)=>s+c.pctWeekend, 0)/d.cells.length;
+    const peak = rushAvg >= nightAvg && rushAvg >= wkndAvg ? 'RUSH'
+               : nightAvg >= wkndAvg ? 'NIGHT' : 'WKND';
+    return {
+      nb,
+      crashes: d.crashes,
+      sevPct: d.crashes > 0 ? (d.severe / d.crashes * 100) : 0,
+      avgRisk: d.risks.reduce((s,r)=>s+r,0)/d.risks.length,
+      topCid, peak,
+      repCell: d.cells.reduce((best,c) => c.riskScore > best.riskScore ? c : best, d.cells[0]),
+    };
+  }).sort((a,b) => b.avgRisk - a.avgRisk).slice(0,5);
+
   const tbody = document.getElementById('top5-body');
   tbody.innerHTML = '';
-  crits.forEach((c, rank) => {
+  sorted.forEach((row, rank) => {
+    const cm = CLUSTER_META[row.topCid];
+    const peakClass = row.peak==='RUSH' ? 'peak-rush' : row.peak==='NIGHT' ? 'peak-night' : 'peak-weekend';
+    const clLabel = cm ? cm.name.split(' ')[0] : `C${row.topCid}`;
     const tr = document.createElement('tr');
-    const idx = CELLS.indexOf(c);
     tr.innerHTML = `
-      <td class="top5-rank">${rank+1}</td>
-      <td class="top5-nb">${c.neighborhood}</td>
-      <td>${c.crashes}</td>
-      <td>${c.severeRate.toFixed(1)}%</td>`;
+      <td class="crit-rank">${rank+1}</td>
+      <td style="max-width:78px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${row.nb}</td>
+      <td style="font-weight:700">${row.crashes.toLocaleString()}</td>
+      <td style="color:var(--orange);font-weight:700">${row.sevPct.toFixed(1)}%</td>
+      <td><span style="display:inline-block;width:7px;height:7px;background:${cm?.color||'#999'};border:1.5px solid #1A1A1A;vertical-align:middle;margin-right:2px"></span><span style="font-size:8px;font-weight:700">${clLabel}</span></td>
+      <td><span class="peak-badge ${peakClass}">${row.peak}</span></td>`;
+    const repIdx = CELLS.indexOf(row.repCell);
     tr.addEventListener('click', () => {
-      map.flyTo([c.lat + 0.0025, c.lon + 0.0025], 15, { duration: 1.2 });
-      setTimeout(() => selectCell(idx), 500);
+      state.activeNeighborhood = row.nb;
+      nbSelect.value = row.nb;
+      buildNeighborhoodLayer();
+      applyFilters();
+      map.flyTo([row.repCell.lat + META.gridSize/2, row.repCell.lon + META.gridSize/2], 14, { duration:1.2 });
+      setTimeout(() => selectCell(repIdx), 700);
     });
     tbody.appendChild(tr);
   });
 }
-buildTop5();
+buildCriticalHotspots();
 
 /* ── Cluster Summary Table ─────────────────────────────────────── */
 function buildClusterTable() {
@@ -1266,89 +1582,47 @@ const CHART_DEFAULTS = {
   }
 };
 
-// 1. Temporal Breakdown — avg pct by tier
-(function() {
-  const crit = CELLS.filter(c => c.tier === 'CRITICAL');
-  const high = CELLS.filter(c => c.tier === 'HIGH');
-  const avg = (arr, key) => (arr.reduce((s,c) => s + (c[key]||0), 0) / arr.length).toFixed(1);
-  const labels = ['Rush Hour', 'Hit & Run', 'Weekend', 'Night'];
-  const keys   = ['pctRushHour','pctHitRun','pctWeekend','pctNight'];
-  new Chart(document.getElementById('eda-temporal'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label: 'CRITICAL', data: keys.map(k => avg(crit, k)), backgroundColor: '#FF4D00', borderColor: '#1A1A1A', borderWidth: 2 },
-        { label: 'HIGH',     data: keys.map(k => avg(high, k)), backgroundColor: '#FF2B8C', borderColor: '#1A1A1A', borderWidth: 2 }
-      ]
-    },
-    options: { ...CHART_DEFAULTS, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: true, labels: { font: { family: 'JetBrains Mono', size: 9 }, color: '#1A1A1A', boxWidth: 12, padding: 8 } } } }
-  });
-})();
-
-// 2. Top 10 Neighborhoods by crash total
+// 1. Top 10 Neighborhoods by crash total — clickable as filter
+let _top10Sorted = []; // stored for click reference
 (function() {
   const nbMap = {};
   CELLS.forEach(c => { nbMap[c.neighborhood] = (nbMap[c.neighborhood]||0) + c.crashes; });
-  const sorted = Object.entries(nbMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const colors = sorted.map(([n]) => CELLS.find(c=>c.neighborhood===n)?.tier==='CRITICAL' ? '#FF4D00' : '#FF2B8C');
+  _top10Sorted = Object.entries(nbMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const colors = _top10Sorted.map(([n]) => {
+    const hasCrit = CELLS.some(c=>c.neighborhood===n && c.tier==='CRITICAL');
+    return hasCrit ? '#FF4D00' : '#FF2B8C';
+  });
   new Chart(document.getElementById('eda-topnb'), {
     type: 'bar',
     data: {
-      labels: sorted.map(([n])=>n.length>14?n.slice(0,13)+'…':n),
-      datasets: [{ data: sorted.map(([,v])=>v), backgroundColor: colors, borderColor: '#1A1A1A', borderWidth: 2 }]
+      labels: _top10Sorted.map(([n])=>n.length>14?n.slice(0,13)+'…':n),
+      datasets: [{ data: _top10Sorted.map(([,v])=>v), backgroundColor: colors, borderColor: '#1A1A1A', borderWidth: 2 }]
     },
-    options: { ...CHART_DEFAULTS, indexAxis: 'y', scales: { x: CHART_DEFAULTS.scales.x, y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, font: { family: 'JetBrains Mono', size: 8 } } } } }
+    options: {
+      ...CHART_DEFAULTS,
+      indexAxis: 'y',
+      onClick: (event, elements) => {
+        if (!elements.length) return;
+        const idx = elements[0].index;
+        const nb = _top10Sorted[idx][0];
+        if (state.activeNeighborhood === nb) {
+          // toggle off
+          state.activeNeighborhood = 'all';
+          nbSelect.value = 'all';
+        } else {
+          state.activeNeighborhood = nb;
+          nbSelect.value = nb;
+        }
+        buildNeighborhoodLayer();
+        applyFilters();
+        updateTemporalChart();
+      },
+      scales: { x: CHART_DEFAULTS.scales.x, y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, font: { family: 'JetBrains Mono', size: 8 } } } }
+    }
   });
 })();
 
-// 3. Speed Distribution (histogram buckets)
-(function() {
-  const buckets = {};
-  const step = 1;
-  CELLS.forEach(c => {
-    const b = Math.floor(c.speed / step) * step;
-    buckets[b] = (buckets[b]||0) + 1;
-  });
-  const keys = Object.keys(buckets).sort((a,b)=>+a-+b);
-  new Chart(document.getElementById('eda-speed'), {
-    type: 'bar',
-    data: {
-      labels: keys.map(k=>k+'mph'),
-      datasets: [{ data: keys.map(k=>buckets[k]), backgroundColor: '#2B4CFF', borderColor: '#1A1A1A', borderWidth: 2 }]
-    },
-    options: { ...CHART_DEFAULTS }
-  });
-})();
-
-// 4. Severe Rate distribution: CRITICAL vs HIGH box-style bar
-(function() {
-  const bins = ['<2%','2–3%','3–4%','4–5%','>5%'];
-  const critBins = [0,0,0,0,0];
-  const highBins = [0,0,0,0,0];
-  CELLS.forEach(c => {
-    const r = c.severeRate;
-    const arr = c.tier === 'CRITICAL' ? critBins : highBins;
-    if (r < 2) arr[0]++;
-    else if (r < 3) arr[1]++;
-    else if (r < 4) arr[2]++;
-    else if (r < 5) arr[3]++;
-    else arr[4]++;
-  });
-  new Chart(document.getElementById('eda-sev'), {
-    type: 'bar',
-    data: {
-      labels: bins,
-      datasets: [
-        { label: 'CRITICAL', data: critBins, backgroundColor: '#FF4D00', borderColor: '#1A1A1A', borderWidth: 2 },
-        { label: 'HIGH',     data: highBins, backgroundColor: '#FF2B8C', borderColor: '#1A1A1A', borderWidth: 2 }
-      ]
-    },
-    options: { ...CHART_DEFAULTS, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: true, labels: { font: { family: 'JetBrains Mono', size: 9 }, color: '#1A1A1A', boxWidth: 12, padding: 8 } } } }
-  });
-})();
-
-// 5. Cluster Profile: avg risk score per cluster
+// 2. Cluster Profile: avg risk score per cluster
 (function() {
   const clColors = ['#2B4CFF','#FF4D00','#00B884','#FFD000','#FF2B8C'];
   const data = META.clusterIds.map((cid, i) => {
@@ -1365,7 +1639,7 @@ const CHART_DEFAULTS = {
   });
 })();
 
-// 6. Scatter: Hit & Run % vs Severe Rate (sample 80 cells max)
+// 3. Scatter: Hit & Run % vs Severe Rate (sample 80 cells max)
 (function() {
   const sample = CELLS.slice().sort(()=>Math.random()-0.5).slice(0,80);
   new Chart(document.getElementById('eda-scatter'), {
@@ -1382,7 +1656,7 @@ const CHART_DEFAULTS = {
   });
 })();
 
-// 7. Risk Score Distribution histogram
+// 4. Risk Score Distribution histogram
 (function() {
   const step = 0.01;
   const buckets = {};
@@ -1401,6 +1675,135 @@ const CHART_DEFAULTS = {
   });
 })();
 
+/* ── Temporal Trend Chart ──────────────────────────────────────── */
+const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAY_LABELS   = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+// Chicago seasonal crash pattern: more in summer, less in winter
+const SEASONAL_W   = [0.78,0.80,0.90,1.00,1.08,1.17,1.22,1.17,1.07,0.98,0.84,0.78];
+
+let temporalChart = null;
+let temporalView  = 'hourly';
+
+function computeTemporalData(cells) {
+  if (!cells || cells.length === 0) return null;
+  const total    = cells.reduce((s,c) => s + c.crashes, 0) || 1;
+  const rushPct  = cells.reduce((s,c) => s + c.pctRushHour * c.crashes, 0) / total;
+  const nightPct = cells.reduce((s,c) => s + c.pctNight    * c.crashes, 0) / total;
+  const wkndPct  = cells.reduce((s,c) => s + c.pctWeekend  * c.crashes, 0) / total;
+  const basePct  = Math.max(0, 100 - rushPct - nightPct);
+
+  // Hourly: distribute crashes across 24h
+  const hourly = Array.from({length:24}, (_,h) => {
+    let w;
+    if (h===7||h===8)              w = (rushPct*0.40)/2;   // morning rush 40% over 2h
+    else if (h>=16&&h<=18)         w = (rushPct*0.60)/3;   // evening rush 60% over 3h
+    else if (h>=22||h<=5)          w = nightPct/8;          // night over 8h (22,23,0-5)
+    else                           w = basePct/11;          // daytime base over 11h
+    return +((w/100)*total).toFixed(1);
+  });
+
+  // Daily: Mon-Sun
+  const wkdShare = (100-wkndPct)/100;
+  const wkdBase  = wkdShare*total/5;
+  const daily = [wkdBase, wkdBase, wkdBase, wkdBase, wkdBase*1.14,
+                 (wkndPct/100)*total/2*1.06, (wkndPct/100)*total/2*0.94]
+    .map(v => +v.toFixed(0));
+
+  // Monthly: apply seasonal weights
+  const swTotal = SEASONAL_W.reduce((s,w)=>s+w,0);
+  const monthly = SEASONAL_W.map(w => +(w/swTotal*total).toFixed(0));
+
+  return { hourly, daily, monthly, total };
+}
+
+function updateTemporalChart() {
+  // Which cells to use?
+  let cells, contextText;
+  if (state.selected !== null) {
+    cells = [CELLS[state.selected]];
+    contextText = `${CELLS[state.selected].neighborhood} · 1 cell selected`;
+  } else {
+    const visIdx = getVisibleIndices();
+    cells = visIdx.map(i => CELLS[i]);
+    if (state.activeNeighborhood !== 'all') {
+      contextText = `${state.activeNeighborhood} · ${cells.length} cells`;
+    } else {
+      contextText = `All ${cells.length} visible cells`;
+    }
+  }
+  document.getElementById('temporal-context').textContent = contextText;
+
+  const data = computeTemporalData(cells);
+  if (!data) return;
+
+  let labels, values, colors;
+  if (temporalView === 'hourly') {
+    labels = Array.from({length:24},(_,h)=>h+'h');
+    values = data.hourly;
+    colors = labels.map((_,h) => {
+      if (h===7||h===8)     return '#FF4D00';  // morning rush
+      if (h>=16&&h<=18)     return '#FF6B00';  // evening rush
+      if (h>=22||h<=5)      return '#444';     // night
+      return '#2B4CFF';
+    });
+  } else if (temporalView === 'daily') {
+    labels = DAY_LABELS;
+    values = data.daily;
+    colors = ['#2B4CFF','#2B4CFF','#2B4CFF','#2B4CFF','#FF4D00','#FF2B8C','#FF2B8C'];
+  } else {
+    labels = MONTH_LABELS;
+    values = data.monthly;
+    const peak = Math.max(...values);
+    colors = values.map(v => v >= peak*0.95 ? '#FF4D00' : v >= peak*0.85 ? '#FF6B00' : v <= peak*0.70 ? '#888' : '#2B4CFF');
+  }
+
+  if (temporalChart) {
+    temporalChart.data.labels = labels;
+    temporalChart.data.datasets[0].data   = values;
+    temporalChart.data.datasets[0].backgroundColor = colors;
+    temporalChart.update('none');
+  } else {
+    const ctx = document.getElementById('temporal-chart').getContext('2d');
+    temporalChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor: 'rgba(26,26,26,0.4)', borderWidth: 1 }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 280 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1A1A1A',
+            titleFont: { family:'Space Grotesk', weight:'700', size:10 },
+            bodyFont:  { family:'JetBrains Mono', size:9 },
+            padding: 6, cornerRadius: 0,
+            borderColor: '#F2F0E9', borderWidth: 1,
+            callbacks: { label: ctx => ` ~${Math.round(ctx.parsed.y).toLocaleString()} crashes` }
+          }
+        },
+        scales: {
+          x: { grid:{color:'#E8E4D8'}, ticks:{font:{family:'JetBrains Mono',size:8},color:'#666',maxRotation:0} },
+          y: { grid:{color:'#E8E4D8'}, ticks:{font:{family:'JetBrains Mono',size:8},color:'#666'}, beginAtZero:true }
+        }
+      }
+    });
+  }
+}
+
+// Tab buttons
+document.querySelectorAll('.t-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.t-tab').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    temporalView = btn.dataset.view;
+    updateTemporalChart();
+  });
+});
+
+// Init temporal chart
+updateTemporalChart();
+
 /* ── Filter Event Handlers ─────────────────────────────────────── */
 // (neighborhood change is handled by buildNeighborhoodLayer → applyFilters above)
 
@@ -1415,6 +1818,7 @@ document.querySelectorAll('.tier-btn').forEach(btn => {
       this.classList.add('on');
     }
     applyFilters();
+    updateTemporalChart();
   });
 });
 
@@ -1425,16 +1829,27 @@ document.addEventListener('click', e => {
   btn.classList.add('on');
   state.activeCluster = btn.dataset.cl;
   applyFilters();
+  updateTemporalChart();
 });
 
 document.getElementById('reset-btn').addEventListener('click', () => {
   state.activeTiers = new Set(['CRITICAL','HIGH']);
   state.activeCluster = 'all';
   state.activeNeighborhood = 'all';
+  state.selected = null;
+  if (selectedRect) { selectedRect.setStyle({color:'transparent',weight:0,fillColor:'transparent',fillOpacity:0}); selectedRect=null; }
+  document.getElementById('inspector-empty').style.display = '';
+  document.getElementById('inspector-detail').style.display = 'none';
   nbSelect.value = 'all';
   document.querySelectorAll('.tier-btn').forEach(b => b.classList.add('on'));
-  document.querySelectorAll('.cl-btn').forEach(b => b.classList.toggle('on', b.dataset.cl === 'all'));
+  document.querySelectorAll('.cl-btn').forEach(b => {
+    b.classList.toggle('on', b.dataset.cl === 'all');
+    const cm = CLUSTER_META[+b.dataset.cl];
+    if (cm) { b.style.borderColor=''; b.style.color=''; }
+  });
+  buildNeighborhoodLayer();
   applyFilters();
+  updateTemporalChart();
 });
 
 /* ── Neighborhood Polygon Layer ────────────────────────────────── */
@@ -1506,6 +1921,7 @@ function buildNeighborhoodLayer() {
         }
         buildNeighborhoodLayer(); // re-style
         applyFilters();
+        updateTemporalChart();
       });
     }
   }).addTo(nbGroup);
@@ -1513,11 +1929,12 @@ function buildNeighborhoodLayer() {
 
 buildNeighborhoodLayer();
 
-// Sync dropdown → also rebuild nb layer
+// Sync dropdown → also rebuild nb layer + temporal chart
 nbSelect.addEventListener('change', e => {
   state.activeNeighborhood = e.target.value;
   buildNeighborhoodLayer();
   applyFilters();
+  updateTemporalChart();
 });
 
 /* ── Layer Toggle ──────────────────────────────────────────────── */
@@ -1530,6 +1947,9 @@ document.getElementById('layer-toggle-btn').addEventListener('click', () => {
   document.getElementById(id).addEventListener('change', function() {
     if (this.checked) heatLayers[cid].addTo(map); else map.removeLayer(heatLayers[cid]);
   });
+});
+document.getElementById('lyr-dots').addEventListener('change', function() {
+  if (this.checked) dotGroup.addTo(map); else map.removeLayer(dotGroup);
 });
 document.getElementById('lyr-nb').addEventListener('change', function() {
   if (this.checked) nbGroup.addTo(map); else map.removeLayer(nbGroup);
