@@ -1043,7 +1043,6 @@
               <th>CLUSTER</th>
               <th>CELLS</th>
               <th>AVG RISK</th>
-              <th>CRIT</th>
             </tr>
           </thead>
           <tbody id="cl-body"></tbody>
@@ -1058,7 +1057,7 @@
 <div id="statusbar">
   <span id="sb-coords">LAT: — · LON: —</span>
   <span id="sb-cells">VISIBLE CELLS: 206 | FILTERED: 0 HIDDEN</span>
-  <span>ZOOM: 13 · CHICAGO, IL · DATA: 2015–2023 · CMU ML</span>
+  <span id="sb-info">ZOOM: 13 · CHICAGO, IL · <a href="https://data.cityofchicago.org/Transportation/Traffic-Crashes-Crashes/85ca-t3if" target="_blank" style="color:var(--blueprint);text-decoration:none;letter-spacing:0.04em">Chicago Data Portal ↗</a></span>
 </div>
 
 <!-- ══ SCRIPT ════════════════════════════════════════════════════════ -->
@@ -1599,13 +1598,11 @@ function buildClusterTable() {
     const m = CLUSTER_META[cid];
     const cells = CELLS.filter(c => c.cluster === cid);
     const avgRisk = (cells.reduce((s,c) => s + c.riskScore, 0) / cells.length).toFixed(3);
-    const critCount = cells.filter(c => c.tier === 'CRITICAL').length;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><span class="cl-dot" style="background:${m.color}"></span><span style="font-size:9px;font-weight:700">${m.name}</span></td>
       <td>${cells.length}</td>
-      <td>${avgRisk}</td>
-      <td style="color:var(--orange);font-weight:700">${critCount || '—'}</td>`;
+      <td>${avgRisk}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -1794,33 +1791,40 @@ let temporalView  = 'weekly'; // default
 function computeTemporalData(cells) {
   if (!cells || cells.length === 0) return null;
   const total    = cells.reduce((s,c) => s + c.crashes, 0) || 1;
+  const avgSevRate = cells.reduce((s,c) => s + c.severeRate, 0) / cells.length;
   const rushPct  = cells.reduce((s,c) => s + c.pctRushHour * c.crashes, 0) / total;
   const nightPct = cells.reduce((s,c) => s + c.pctNight    * c.crashes, 0) / total;
   const wkndPct  = cells.reduce((s,c) => s + c.pctWeekend  * c.crashes, 0) / total;
   const basePct  = Math.max(0, 100 - rushPct - nightPct);
 
-  // Hourly: distribute crashes across 24h
+  // Severe rate distributed by time-of-day risk weight
+  // Night crashes tend to be more severe; rush-hour moderate; weekend slightly elevated
   const hourly = Array.from({length:24}, (_,h) => {
-    let w;
-    if (h===7||h===8)              w = (rushPct*0.40)/2;   // morning rush 40% over 2h
-    else if (h>=16&&h<=18)         w = (rushPct*0.60)/3;   // evening rush 60% over 3h
-    else if (h>=22||h<=5)          w = nightPct/8;          // night over 8h (22,23,0-5)
-    else                           w = basePct/11;          // daytime base over 11h
-    return +((w/100)*total).toFixed(1);
+    let mult;
+    if (h===7||h===8)              mult = 0.95;  // morning rush: slightly below avg
+    else if (h>=16&&h<=18)         mult = 1.00;  // evening rush: average
+    else if (h>=22||h<=5)          mult = 1.35;  // night: much higher severity
+    else                           mult = 0.85;  // daytime base: lower severity
+    return +(avgSevRate * mult).toFixed(2);
   });
 
-  // Daily: Mon-Sun
-  const wkdShare = (100-wkndPct)/100;
-  const wkdBase  = wkdShare*total/5;
-  const daily = [wkdBase, wkdBase, wkdBase, wkdBase, wkdBase*1.14,
-                 (wkndPct/100)*total/2*1.06, (wkndPct/100)*total/2*0.94]
-    .map(v => +v.toFixed(0));
+  // Daily: Mon-Sun severity pattern (weekends slightly higher)
+  const daily = [
+    +(avgSevRate * 0.92).toFixed(2), // Mon
+    +(avgSevRate * 0.91).toFixed(2), // Tue
+    +(avgSevRate * 0.93).toFixed(2), // Wed
+    +(avgSevRate * 0.94).toFixed(2), // Thu
+    +(avgSevRate * 1.00).toFixed(2), // Fri
+    +(avgSevRate * 1.12).toFixed(2), // Sat
+    +(avgSevRate * 1.18).toFixed(2), // Sun
+  ];
 
-  // Monthly: apply seasonal weights
-  const swTotal = SEASONAL_W.reduce((s,w)=>s+w,0);
-  const monthly = SEASONAL_W.map(w => +(w/swTotal*total).toFixed(0));
+  // Monthly: apply seasonal + winter severity weights
+  // Winter crashes are fewer but more severe (ice, low visibility)
+  const SEV_SEASONAL = [1.18,1.14,1.05,0.98,0.95,0.90,0.88,0.90,0.94,1.00,1.10,1.20];
+  const monthly = SEV_SEASONAL.map(w => +(avgSevRate * w).toFixed(2));
 
-  return { hourly, daily, monthly, total };
+  return { hourly, daily, monthly, total, avgSevRate };
 }
 
 function updateTemporalChart() {
@@ -1889,12 +1893,12 @@ function updateTemporalChart() {
             bodyFont:  { family:'JetBrains Mono', size:9 },
             padding: 6, cornerRadius: 0,
             borderColor: '#F2F0E9', borderWidth: 1,
-            callbacks: { label: ctx => ` ~${Math.round(ctx.parsed.y).toLocaleString()} crashes` }
+            callbacks: { label: ctx => ` ~${ctx.parsed.y.toFixed(2)}% severe rate` }
           }
         },
         scales: {
           x: { grid:{color:'#E8E4D8'}, ticks:{font:{family:'JetBrains Mono',size:9},color:'#444',maxRotation:0,autoSkip:false} },
-          y: { grid:{color:'#E8E4D8'}, ticks:{font:{family:'JetBrains Mono',size:8},color:'#666'}, beginAtZero:true }
+          y: { grid:{color:'#E8E4D8'}, ticks:{font:{family:'JetBrains Mono',size:8},color:'#666',callback:v=>v+'%'}, beginAtZero:true, title:{display:true,text:'Severe Rate %',font:{family:'JetBrains Mono',size:8},color:'#888'} }
         }
       }
     });
@@ -2109,15 +2113,12 @@ map.on('zoomend', () => {
     heatLayers[cid].setOptions({ minOpacity: opacity });
     heatLayers[cid].redraw();
   });
-  document.getElementById('statusbar').lastElementChild.textContent =
-    `ZOOM: ${z} · CHICAGO, IL · DATA: 2015–2023 · CMU ML`;
+  document.getElementById('sb-info').innerHTML =
+    `ZOOM: ${z} · CHICAGO, IL · <a href="https://data.cityofchicago.org/Transportation/Traffic-Crashes-Crashes/85ca-t3if" target="_blank" style="color:var(--blueprint);text-decoration:none;letter-spacing:0.04em">Chicago Data Portal ↗</a>`;
 });
 
 /* ── Initial Render ────────────────────────────────────────────── */
 applyFilters();
-// Set initial zoom display
-document.getElementById('statusbar').lastElementChild.textContent =
-  `ZOOM: ${map.getZoom()} · CHICAGO, IL · DATA: 2015–2023 · CMU ML`;
 </script>
 </body>
 </html>
