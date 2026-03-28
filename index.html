@@ -1370,7 +1370,7 @@ map.on('click', function(e) {
 function renderInspector(c) {
   document.getElementById('inspector-empty').style.display = 'none';
   document.getElementById('inspector-area').style.display = 'none';
-  document.getElementById('inspector-detail').style.display = '';
+  document.getElementById('inspector-detail').style.display = 'block';
 
   // ① Location — big title + coords
   document.getElementById('insp-nb').textContent   = c.neighborhood;
@@ -1649,6 +1649,7 @@ function buildClusterTable() {
   const visSet = new Set(getVisibleIndices());
   META.clusterIds.forEach(cid => {
     const m = CLUSTER_META[cid];
+    if (!m) return; // guard: skip unknown cluster IDs
     const cells = CELLS.filter((c,i) => visSet.has(i) && c.cluster === cid);
     if (!cells.length) return; // hide clusters not in current filter
     const avgRisk = (cells.reduce((s,c) => s + c.riskScore, 0) / cells.length).toFixed(3);
