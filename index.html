@@ -585,10 +585,27 @@
     }
 
     /* ── Temporal Trend Bar ──────────────────────────────────────────── */
-    #temporal-bar {
-      height: 168px;
+    #temporal-resize-handle {
+      height: 7px;
       flex-shrink: 0;
-      border-top: 3px solid var(--ink);
+      background: var(--ink);
+      cursor: ns-resize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+    #temporal-resize-handle::after {
+      content: '⋯';
+      color: var(--paper);
+      font-size: 14px;
+      letter-spacing: 3px;
+      line-height: 1;
+    }
+    #temporal-bar {
+      height: 220px;
+      flex-shrink: 0;
+      border-top: none;
       background: var(--paper);
       display: flex;
       flex-direction: column;
@@ -830,6 +847,9 @@
       </div>
     </div>
 
+    <!-- Drag handle to resize temporal panel -->
+    <div id="temporal-resize-handle" title="Drag to resize"></div>
+
     <!-- TEMPORAL TREND CHART -->
     <div id="temporal-bar">
       <div class="temporal-head">
@@ -898,47 +918,52 @@
         <div class="stat-row"><span class="stat-label">AVG RISK SCORE</span><span class="stat-value" id="area-risk">—</span></div>
         <div class="stat-row"><span class="stat-label">TOP CLUSTER</span><span class="stat-value" id="area-cluster">—</span></div>
       </div>
-      <div id="inspector-detail" class="sec-body">
-        <div style="font-size:8px;font-weight:700;letter-spacing:0.08em;color:#777;margin-bottom:5px;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;border-left:3px solid var(--blueprint);padding-left:6px" id="insp-mode-label">CELL INSPECTION</div>
-        <div class="insp-header">
+      <div id="inspector-detail" class="sec-body" style="padding:10px 12px">
+
+        <!-- ① Location header — most prominent element -->
+        <div style="margin-bottom:8px">
+          <div style="font-size:8px;font-weight:700;letter-spacing:0.12em;color:#888;text-transform:uppercase;margin-bottom:3px">INSPECTING CELL</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:14px;line-height:1.2;letter-spacing:0.02em;word-break:break-word;color:var(--ink)" id="insp-nb">—</div>
+          <div style="font-size:9px;color:#888;margin-top:2px;font-family:'JetBrains Mono',monospace" id="insp-grid">—</div>
+          <div style="font-size:9px;color:#888;margin-top:1px;font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="insp-street">—</div>
+        </div>
+
+        <!-- ② Tier + cluster badges -->
+        <div class="insp-header" style="margin-bottom:8px">
           <span class="tier-badge" id="insp-tier">—</span>
           <span class="cluster-badge" id="insp-cluster">—</span>
         </div>
-        <div class="stat-row">
-          <span class="stat-label">NEIGHBORHOOD</span>
-          <span class="stat-value" id="insp-nb">—</span>
+
+        <!-- ③ Key stats: 2-col mini grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px">
+          <div style="background:#F8F6EF;border:1.5px solid var(--grid);padding:5px 7px">
+            <div style="font-size:8px;color:#888;letter-spacing:0.07em">CRASHES</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:16px;line-height:1.1;color:var(--ink)" id="insp-crashes">—</div>
+          </div>
+          <div style="background:#F8F6EF;border:1.5px solid var(--grid);padding:5px 7px">
+            <div style="font-size:8px;color:#888;letter-spacing:0.07em">SEVERE RATE</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:16px;line-height:1.1;color:var(--orange)" id="insp-sev-rate">—</div>
+          </div>
+          <div style="background:#F8F6EF;border:1.5px solid var(--grid);padding:5px 7px">
+            <div style="font-size:8px;color:#888;letter-spacing:0.07em">SEVERE</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:16px;line-height:1.1;color:var(--ink)" id="insp-severe">—</div>
+          </div>
+          <div style="background:#F8F6EF;border:1.5px solid var(--grid);padding:5px 7px">
+            <div style="font-size:8px;color:#888;letter-spacing:0.07em">RISK SCORE</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:13px;line-height:1.1;color:var(--ink)" id="insp-risk">—</div>
+          </div>
         </div>
-        <div class="stat-row">
-          <span class="stat-label">GRID CENTER</span>
-          <span class="stat-value" id="insp-grid" style="font-size:10px;">—</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">STREET/OSM</span>
-          <span class="stat-value" id="insp-street" style="font-size:9px;text-align:right;max-width:168px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
-        </div>
-        <div class="divider"></div>
-        <div class="stat-row">
-          <span class="stat-label">TOTAL CRASHES</span>
-          <span class="stat-value" id="insp-crashes">—</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">SEVERE CRASHES</span>
-          <span class="stat-value" id="insp-severe">—</span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-label">SEVERE RATE</span>
-          <span class="stat-value warn" id="insp-sev-rate">—</span>
-        </div>
-        <div class="stat-row">
+
+        <!-- ④ Additional stats row -->
+        <div class="stat-row" style="margin-bottom:2px">
           <span class="stat-label">MEAN SPEED</span>
           <span class="stat-value" id="insp-speed">—</span>
         </div>
-        <div class="stat-row">
-          <span class="stat-label">RISK SCORE</span>
-          <span class="stat-value" id="insp-risk">—</span>
-        </div>
+
         <div class="divider"></div>
-        <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;color:#777;margin-bottom:8px;">TEMPORAL BREAKDOWN</div>
+
+        <!-- ⑤ Temporal mini bars -->
+        <div style="font-size:8px;font-weight:700;letter-spacing:0.1em;color:#777;margin-bottom:6px;text-transform:uppercase">When crashes happen</div>
         <div class="tbar-row">
           <div class="tbar-label-row"><span>Rush Hour</span><span id="tb-rush">—</span></div>
           <div class="tbar-track"><div class="tbar-fill" id="tbf-rush" style="background:var(--orange)"></div></div>
@@ -1346,8 +1371,15 @@ function renderInspector(c) {
   document.getElementById('inspector-empty').style.display = 'none';
   document.getElementById('inspector-area').style.display = 'none';
   document.getElementById('inspector-detail').style.display = '';
-  document.getElementById('insp-mode-label').textContent = 'CELL INSPECTION · ' + c.neighborhood;
 
+  // ① Location — big title + coords
+  document.getElementById('insp-nb').textContent   = c.neighborhood;
+  const dotLat = c.lat + META.gridSize / 2;
+  const dotLon = c.lon + META.gridSize / 2;
+  document.getElementById('insp-grid').textContent =
+    dotLat.toFixed(4) + '°N, ' + dotLon.toFixed(4) + '°W';
+
+  // ② Tier + cluster badges
   const tierEl = document.getElementById('insp-tier');
   tierEl.textContent = c.tier;
   tierEl.className = 'tier-badge ' + c.tier;
@@ -1357,14 +1389,13 @@ function renderInspector(c) {
   clBadge.textContent = cm ? cm.name : ('C' + c.cluster);
   clBadge.style.borderColor = cm ? cm.color : '#1A1A1A';
   clBadge.style.color = cm ? cm.color : '#1A1A1A';
-  document.getElementById('insp-nb').textContent = c.neighborhood;
-  document.getElementById('insp-grid').textContent =
-    c.lat.toFixed(3) + '°N / ' + c.lon.toFixed(3) + '°W';
-  document.getElementById('insp-crashes').textContent = c.crashes;
-  document.getElementById('insp-severe').textContent = c.severe;
+
+  // ③ Key stats
+  document.getElementById('insp-crashes').textContent  = c.crashes.toLocaleString();
+  document.getElementById('insp-severe').textContent   = c.severe;
   document.getElementById('insp-sev-rate').textContent = c.severeRate.toFixed(2) + '%';
-  document.getElementById('insp-speed').textContent = c.speed.toFixed(1) + ' mph';
-  document.getElementById('insp-risk').textContent = c.riskScore.toFixed(4);
+  document.getElementById('insp-speed').textContent    = c.speed.toFixed(1) + ' mph';
+  document.getElementById('insp-risk').textContent     = c.riskScore.toFixed(4);
 
   const bars = [
     ['rush', c.pctRushHour],
@@ -1377,12 +1408,10 @@ function renderInspector(c) {
     document.getElementById('tbf-' + k).style.width = Math.min(v, 100) + '%';
   });
 
-  // OSM street lookup
+  // OSM street lookup (dotLat/dotLon already defined above)
   const streetEl = document.getElementById('insp-street');
-  streetEl.textContent = 'loading…';
-  const dotLat = c.lat + META.gridSize / 2;
-  const dotLon = c.lon + META.gridSize / 2;
-  fetchOSMStreet(dotLat, dotLon).then(s => { streetEl.textContent = s; });
+  streetEl.textContent = '⌛ loading street…';
+  fetchOSMStreet(dotLat, dotLon).then(s => { streetEl.textContent = '📍 ' + s; });
 
   // Update temporal chart to this cell
   updateTemporalChart();
@@ -2035,6 +2064,38 @@ updateTemporalChart();
 
 // Fix map size for flex layout (call after everything is rendered)
 setTimeout(() => map.invalidateSize(), 100);
+
+/* ── Temporal Panel Drag-Resize ─────────────────────────────────── */
+(function() {
+  const handle = document.getElementById('temporal-resize-handle');
+  const bar    = document.getElementById('temporal-bar');
+  const MIN_H  = 120, MAX_H = 420;
+  let dragging = false, startY = 0, startH = 0;
+
+  handle.addEventListener('mousedown', e => {
+    dragging = true;
+    startY   = e.clientY;
+    startH   = bar.offsetHeight;
+    document.body.style.cursor     = 'ns-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const delta = startY - e.clientY;           // drag up = bigger
+    const newH  = Math.min(MAX_H, Math.max(MIN_H, startH + delta));
+    bar.style.height = newH + 'px';
+    map.invalidateSize();
+  });
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    document.body.style.cursor     = '';
+    document.body.style.userSelect = '';
+    map.invalidateSize();
+    if (temporalChart) temporalChart.resize();
+  });
+})();
 
 /* ── Filter Event Handlers ─────────────────────────────────────── */
 // (neighborhood change is handled by buildNeighborhoodLayer → applyFilters above)
