@@ -728,8 +728,13 @@
       <div class="sec-block">
         <div class="sec-head">Filters</div>
         <div class="sec-body">
+          <div class="f-label">Area (Region)</div>
+          <select class="f-select" id="region-select">
+            <option value="all">All Areas</option>
+          </select>
+
           <div class="f-label">Neighborhood</div>
-          <select class="f-select" id="nb-select">
+          <select class="f-select" id="nb-select" style="margin-top:2px">
             <option value="all">All Neighborhoods</option>
           </select>
 
@@ -740,8 +745,8 @@
           </div>
 
           <div class="f-label">K-Means Cluster</div>
-          <div class="chips" id="cluster-chips">
-            <button class="cl-btn on" data-cl="all">All</button>
+          <div id="cluster-chips" style="display:flex;flex-direction:column;gap:4px;margin-top:2px">
+            <button class="cl-btn on" data-cl="all" style="text-align:left;padding:4px 8px;font-size:10px;letter-spacing:0.05em">ALL CLUSTERS</button>
           </div>
 
           <button class="reset-btn" id="reset-btn">↺ RESET FILTERS</button>
@@ -832,9 +837,9 @@
     <div id="temporal-bar">
       <div class="temporal-head">
         <span class="temporal-title">TEMPORAL TREND</span>
-        <button class="t-tab on" data-view="hourly">HOURLY</button>
-        <button class="t-tab" data-view="daily">DAILY</button>
         <button class="t-tab" data-view="monthly">MONTHLY</button>
+        <button class="t-tab on" data-view="weekly">WEEKLY</button>
+        <button class="t-tab" data-view="daily">DAILY</button>
         <span id="temporal-context">All 206 cells</span>
       </div>
       <div class="temporal-canvas-wrap">
@@ -1054,6 +1059,7 @@
 const state = {
   activeTiers: new Set(['CRITICAL','HIGH']),
   activeCluster: 'all',
+  activeRegion: 'all',
   activeNeighborhood: 'all',
   selected: null
 };
@@ -1065,6 +1071,16 @@ const TIER_COLORS = {
   BASELINE: '#00B884'
 };
 const CLUSTER_COLORS = ['#2B4CFF','#FF4D00','#00B884','#FFD000','#FF2B8C','#9B59B6','#1ABC9C','#E67E22','#34495E'];
+
+/* ── Cluster Metadata (defined early so chip builder can use it) ── */
+const CLUSTER_META = {
+  0: { name: 'ZONE ALPHA',    sub: '30 Critical cores',    color: '#FF1A00', gradient: { 0.0:'#FFE066', 0.4:'#FF6600', 0.78:'#FF1A00', 1.0:'#8B0000' } },
+  2: { name: '24H SURGE',     sub: '272 avg crashes/cell', color: '#1A40FF', gradient: { 0.0:'#B3C6FF', 0.4:'#4D79FF', 0.78:'#1A40FF', 1.0:'#001199' } },
+  3: { name: 'RUSH GRID',     sub: '42.8% rush-hour risk', color: '#00A86B', gradient: { 0.0:'#A3F0D6', 0.4:'#00CC80', 0.78:'#00A86B', 1.0:'#004D33' } },
+  4: { name: 'PEAK PULSE',    sub: '62.5% commuter-driven',color: '#CC9900', gradient: { 0.0:'#FFF3A3', 0.4:'#FFD000', 0.78:'#CC9900', 1.0:'#805E00' } },
+  8: { name: 'SEVERITY APEX', sub: '3.81% severe rate',    color: '#CC0066', gradient: { 0.0:'#FFB3D9', 0.4:'#FF3399', 0.78:'#CC0066', 1.0:'#660033' } },
+};
+const CLUSTER_RANK = { 0:1, 2:2, 3:3, 4:4, 8:5 };
 
 /* ── Chicago Region → Neighborhood Hierarchy ───────────────────── */
 const CHICAGO_REGIONS = {
@@ -1078,17 +1094,18 @@ const CHICAGO_REGIONS = {
   'FAR SOUTHEAST':  ['Avalon Park','Burnside','Calumet Heights','East Side','Hegewisch','Pullman','Riverdale','Roseland','South Deering'],
 };
 
-/* ── Build Neighborhood Dropdown (hierarchical optgroups) ──────── */
-const nbSelect = document.getElementById('nb-select');
+/* ── Two-Dropdown Neighborhood Filter ──────────────────────────── */
+const nbSelect     = document.getElementById('nb-select');
+const regionSelect = document.getElementById('region-select');
 const allNbs = new Set(META.neighborhoods);
 
 // Build reverse lookup: neighborhood → region
 const nbToRegion = {};
 Object.entries(CHICAGO_REGIONS).forEach(([region, nbs]) => {
-  nbs.forEach(n => { nbToRegion[n] = region; });
+  nbs.forEach(n => { if (!nbToRegion[n]) nbToRegion[n] = region; });
 });
 
-// Collect which neighborhoods appear in data, grouped by region
+// Collect neighborhoods grouped by region (only those that appear in data)
 const regionGroups = {};
 allNbs.forEach(n => {
   const region = nbToRegion[n] || 'OTHER';
@@ -1096,37 +1113,47 @@ allNbs.forEach(n => {
   regionGroups[region].push(n);
 });
 
-// Add regions in defined order, then any leftovers
+// Populate region dropdown
 const regionOrder = [...Object.keys(CHICAGO_REGIONS), 'OTHER'];
 regionOrder.forEach(region => {
-  const nbs = regionGroups[region];
-  if (!nbs || nbs.length === 0) return;
-  const group = document.createElement('optgroup');
-  group.label = `── ${region}`;
-  nbs.sort().forEach(n => {
-    const opt = document.createElement('option');
-    opt.value = n;
-    opt.textContent = n;
-    group.appendChild(opt);
-  });
-  nbSelect.appendChild(group);
+  if (!regionGroups[region] || regionGroups[region].length === 0) return;
+  const opt = document.createElement('option');
+  opt.value = region;
+  opt.textContent = region.charAt(0) + region.slice(1).toLowerCase();
+  regionSelect.appendChild(opt);
 });
 
-/* ── Build Cluster Pills (with names and rank numbers) ─────────── */
+// Populate neighborhood dropdown (optionally filtered by region)
+function populateNbSelect(filterRegion) {
+  nbSelect.innerHTML = '<option value="all">All Neighborhoods</option>';
+  const nbs = filterRegion === 'all'
+    ? [...allNbs].sort()
+    : (regionGroups[filterRegion] || []).slice().sort();
+  nbs.forEach(n => {
+    const opt = document.createElement('option');
+    opt.value = n; opt.textContent = n;
+    nbSelect.appendChild(opt);
+  });
+}
+populateNbSelect('all');
+
+/* ── Build Cluster Pills (full-row named buttons with rank) ─────── */
 const clChips = document.getElementById('cluster-chips');
-const CLUSTER_RANK = { 0:1, 2:2, 3:3, 4:4, 8:5 };
 META.clusterIds.forEach(cid => {
+  const cm = CLUSTER_META[cid];
+  const rank = CLUSTER_RANK[cid] || cid;
   const btn = document.createElement('button');
   btn.className = 'cl-btn';
   btn.dataset.cl = cid;
-  const cm = CLUSTER_META[cid];
-  const rank = CLUSTER_RANK[cid] || cid;
-  btn.textContent = `${rank}·${cm ? cm.name.split(' ')[0] : cid}`;
-  btn.title = cm ? cm.name : `Cluster ${cid}`;
-  if (cm) {
-    btn.style.borderColor = cm.color;
-    btn.style.color = cm.color;
-  }
+  btn.style.textAlign = 'left';
+  btn.style.padding = '4px 8px';
+  btn.style.fontSize = '10px';
+  btn.style.letterSpacing = '0.05em';
+  btn.style.display = 'flex';
+  btn.style.alignItems = 'center';
+  btn.style.gap = '6px';
+  btn.innerHTML = `<span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:12px;color:${cm?.color||'#999'};min-width:14px">${rank}</span><span style="display:inline-block;width:8px;height:8px;background:${cm?.color||'#999'};border:1.5px solid rgba(0,0,0,0.3);flex-shrink:0"></span><span>${cm ? cm.name : 'C'+cid}</span>`;
+  btn.title = cm ? cm.sub : `Cluster ${cid}`;
   clChips.appendChild(btn);
 });
 
@@ -1160,15 +1187,7 @@ map.getPane('dotPane').style.zIndex = 450;
 map.getPane('dotPane').style.pointerEvents = 'none'; // visual only; cell rects handle clicks
 
 /* ── Heatmap Layer — one per K-Means cluster ───────────────────── */
-// Each cluster gets a completely distinct vivid color palette
-// Creative cluster names + distinct colors
-const CLUSTER_META = {
-  0: { name: 'ZONE ALPHA',    sub: '30 Critical cores',    color: '#FF1A00', gradient: { 0.0:'#FFE066', 0.4:'#FF6600', 0.78:'#FF1A00', 1.0:'#8B0000' } },
-  2: { name: '24H SURGE',     sub: '272 avg crashes/cell', color: '#1A40FF', gradient: { 0.0:'#B3C6FF', 0.4:'#4D79FF', 0.78:'#1A40FF', 1.0:'#001199' } },
-  3: { name: 'RUSH GRID',     sub: '42.8% rush-hour risk', color: '#00A86B', gradient: { 0.0:'#A3F0D6', 0.4:'#00CC80', 0.78:'#00A86B', 1.0:'#004D33' } },
-  4: { name: 'PEAK PULSE',    sub: '62.5% commuter-driven',color: '#CC9900', gradient: { 0.0:'#FFF3A3', 0.4:'#FFD000', 0.78:'#CC9900', 1.0:'#805E00' } },
-  8: { name: 'SEVERITY APEX', sub: '3.81% severe rate',    color: '#CC0066', gradient: { 0.0:'#FFB3D9', 0.4:'#FF3399', 0.78:'#CC0066', 1.0:'#660033' } },
-};
+// CLUSTER_META defined early at top of script for chip builder access
 const CLUSTER_HEAT = Object.fromEntries(
   Object.entries(CLUSTER_META).map(([cid, m]) => [cid, { gradient: m.gradient }])
 );
@@ -1366,7 +1385,12 @@ function getVisibleIndices() {
   CELLS.forEach((c, i) => {
     if (!state.activeTiers.has(c.tier)) return;
     if (state.activeCluster !== 'all' && String(c.cluster) !== state.activeCluster) return;
-    if (state.activeNeighborhood !== 'all' && c.neighborhood !== state.activeNeighborhood) return;
+    if (state.activeNeighborhood !== 'all') {
+      if (c.neighborhood !== state.activeNeighborhood) return;
+    } else if (state.activeRegion !== 'all') {
+      const cellRegion = nbToRegion[c.neighborhood] || 'OTHER';
+      if (cellRegion !== state.activeRegion) return;
+    }
     vis.push(i);
   });
   return vis;
@@ -1676,13 +1700,14 @@ let _top10Sorted = []; // stored for click reference
 })();
 
 /* ── Temporal Trend Chart ──────────────────────────────────────── */
-const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const DAY_LABELS   = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const MONTH_LABELS  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WEEK_LABELS   = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const DAY_LABELS    = Array.from({length:24},(_,h)=>h+'h');
 // Chicago seasonal crash pattern: more in summer, less in winter
-const SEASONAL_W   = [0.78,0.80,0.90,1.00,1.08,1.17,1.22,1.17,1.07,0.98,0.84,0.78];
+const SEASONAL_W    = [0.78,0.80,0.90,1.00,1.08,1.17,1.22,1.17,1.07,0.98,0.84,0.78];
 
 let temporalChart = null;
-let temporalView  = 'hourly';
+let temporalView  = 'weekly'; // default
 
 function computeTemporalData(cells) {
   if (!cells || cells.length === 0) return null;
@@ -1737,20 +1762,23 @@ function updateTemporalChart() {
   if (!data) return;
 
   let labels, values, colors;
-  if (temporalView === 'hourly') {
-    labels = Array.from({length:24},(_,h)=>h+'h');
+  if (temporalView === 'daily') {
+    // DAILY = 24-hour breakdown
+    labels = DAY_LABELS;
     values = data.hourly;
-    colors = labels.map((_,h) => {
+    colors = DAY_LABELS.map((_,h) => {
       if (h===7||h===8)     return '#FF4D00';  // morning rush
       if (h>=16&&h<=18)     return '#FF6B00';  // evening rush
       if (h>=22||h<=5)      return '#444';     // night
       return '#2B4CFF';
     });
-  } else if (temporalView === 'daily') {
-    labels = DAY_LABELS;
+  } else if (temporalView === 'weekly') {
+    // WEEKLY = Mon-Sun breakdown
+    labels = WEEK_LABELS;
     values = data.daily;
     colors = ['#2B4CFF','#2B4CFF','#2B4CFF','#2B4CFF','#FF4D00','#FF2B8C','#FF2B8C'];
   } else {
+    // MONTHLY = Jan-Dec seasonal
     labels = MONTH_LABELS;
     values = data.monthly;
     const peak = Math.max(...values);
@@ -1804,6 +1832,9 @@ document.querySelectorAll('.t-tab').forEach(btn => {
 // Init temporal chart
 updateTemporalChart();
 
+// Fix map size for flex layout (call after everything is rendered)
+setTimeout(() => map.invalidateSize(), 100);
+
 /* ── Filter Event Handlers ─────────────────────────────────────── */
 // (neighborhood change is handled by buildNeighborhoodLayer → applyFilters above)
 
@@ -1835,8 +1866,11 @@ document.addEventListener('click', e => {
 document.getElementById('reset-btn').addEventListener('click', () => {
   state.activeTiers = new Set(['CRITICAL','HIGH']);
   state.activeCluster = 'all';
+  state.activeRegion = 'all';
   state.activeNeighborhood = 'all';
   state.selected = null;
+  regionSelect.value = 'all';
+  populateNbSelect('all');
   if (selectedRect) { selectedRect.setStyle({color:'transparent',weight:0,fillColor:'transparent',fillOpacity:0}); selectedRect=null; }
   document.getElementById('inspector-empty').style.display = '';
   document.getElementById('inspector-detail').style.display = 'none';
@@ -1929,7 +1963,18 @@ function buildNeighborhoodLayer() {
 
 buildNeighborhoodLayer();
 
-// Sync dropdown → also rebuild nb layer + temporal chart
+// Region select → repopulate neighborhoods, update filter
+regionSelect.addEventListener('change', e => {
+  state.activeRegion = e.target.value;
+  state.activeNeighborhood = 'all';
+  populateNbSelect(e.target.value);
+  nbSelect.value = 'all';
+  buildNeighborhoodLayer();
+  applyFilters();
+  updateTemporalChart();
+});
+
+// Neighborhood select → filter
 nbSelect.addEventListener('change', e => {
   state.activeNeighborhood = e.target.value;
   buildNeighborhoodLayer();
