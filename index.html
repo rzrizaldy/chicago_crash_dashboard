@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chicago Crash Risk Intelligence Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="cells_data.js"></script>
+  <script src="neighborhoods.js"></script>
+  <style>
+    /* ── Design Tokens ─────────────────────────────────────────────── */
+    :root {
+      --paper:     #F2F0E9;
+      --ink:       #1A1A1A;
+      --blueprint: #2B4CFF;
+      --orange:    #FF4D00;
+      --pink:      #FF2B8C;
+      --green:     #00B884;
+      --yellow:    #FFD000;
+      --grid:      #D1D1D1;
+      --panel-w-l: 268px;
+      --panel-w-r: 316px;
+    }
+
+    /* ── Reset ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--paper);
+      color: var(--ink);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Top Bar ───────────────────────────────────────────────────── */
+    #topbar {
+      height: 52px;
+      flex-shrink: 0;
+      background: var(--ink);
+      color: var(--paper);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      z-index: 1000;
+    }
+    .tb-left { display: flex; align-items: center; gap: 0; }
+    .tb-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.14em;
+      color: var(--blueprint);
+      background: var(--paper);
+      padding: 5px 11px;
+      margin-right: 14px;
+      line-height: 1;
+    }
+    .tb-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      color: var(--paper);
+      margin-right: 18px;
+    }
+    .tb-sub {
+      font-size: 10px;
+      color: #888;
+      letter-spacing: 0.06em;
+      border: 1px solid #444;
+      padding: 2px 8px;
+    }
+    .tb-right { display: flex; align-items: center; gap: 10px; }
+    .tb-chip {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 11px;
+      border: 2px solid;
+      letter-spacing: 0.07em;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .tb-chip.crit { border-color: var(--orange); color: var(--orange); }
+    .tb-chip.high { border-color: var(--pink);   color: var(--pink);   }
+    .tb-live {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 10px; color: var(--green); letter-spacing: 0.06em;
+    }
+    .tb-live::before {
+      content:''; width:8px; height:8px; border-radius:50%;
+      background: var(--green); display:inline-block;
+      animation: blink 1.6s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    /* ── App Body ──────────────────────────────────────────────────── */
+    #app {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* ── Left Panel ────────────────────────────────────────────────── */
+    #left-panel {
+      width: var(--panel-w-l);
+      flex-shrink: 0;
+      background: var(--paper);
+      border-right: 3px solid var(--ink);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden; /* parent does NOT scroll */
+    }
+
+    /* filters + metrics: fixed height, never scroll */
+    #lp-fixed {
+      flex-shrink: 0;
+      border-bottom: 3px solid var(--ink);
+    }
+
+    /* eda section: takes remaining height, scrolls internally */
+    #lp-eda {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
+    #lp-eda::-webkit-scrollbar { width: 5px; }
+    #lp-eda::-webkit-scrollbar-thumb { background: var(--grid); }
+
+    /* ── Map ───────────────────────────────────────────────────────── */
+    #map-container {
+      flex: 1;
+      position: relative;
+      min-width: 0;
+    }
+    #map {
+      position: absolute;
+      inset: 0;
+      background: #E8E4D8;
+    }
+    /* hide default leaflet controls (we use custom ones) */
+    .leaflet-control-zoom { display: none; }
+
+    /* ── Right Panel ───────────────────────────────────────────────── */
+    #right-panel {
+      width: var(--panel-w-r);
+      flex-shrink: 0;
+      background: var(--paper);
+      border-left: 3px solid var(--ink);
+      overflow-y: auto;
+      min-height: 0;
+    }
+    #right-panel::-webkit-scrollbar { width: 5px; }
+    #right-panel::-webkit-scrollbar-thumb { background: var(--grid); }
+
+    /* ── Status Bar ────────────────────────────────────────────────── */
+    #statusbar {
+      height: 28px;
+      flex-shrink: 0;
+      background: var(--ink);
+      color: var(--paper);
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 0 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Shared Section Elements ────────────────────────────────────── */
+    .sec-head {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border-left: 4px solid var(--blueprint);
+      padding: 7px 0 7px 9px;
+      background: var(--paper);
+    }
+    .sec-body { padding: 10px 12px; }
+    .sec-block {
+      border-bottom: 3px solid var(--ink);
+    }
+    .sec-block:last-child { border-bottom: none; }
+    .divider { height: 1px; background: var(--grid); margin: 8px 0; }
+
+    /* ── Filter Controls ────────────────────────────────────────────── */
+    .f-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #777;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      margin-top: 9px;
+    }
+    .f-label:first-child { margin-top: 0; }
+
+    select.f-select {
+      width: 100%;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      background: var(--paper);
+      color: var(--ink);
+      border: 3px solid var(--ink);
+      padding: 5px 7px;
+      appearance: none;
+      cursor: pointer;
+      box-shadow: 3px 3px 0 var(--ink);
+      outline: none;
+    }
+    select.f-select:focus { border-color: var(--blueprint); }
+
+    .chips { display: flex; gap: 5px; flex-wrap: wrap; }
+
+    .tier-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 9px;
+      border: 3px solid;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      background: var(--paper);
+      box-shadow: 3px 3px 0 var(--ink);
+      transition: background 0.1s, color 0.1s;
+    }
+    .tier-btn.crit { border-color: var(--orange); color: var(--orange); }
+    .tier-btn.crit.on { background: var(--orange); color: #fff; box-shadow: none; }
+    .tier-btn.high { border-color: var(--pink); color: var(--pink); }
+    .tier-btn.high.on { background: var(--pink); color: #fff; box-shadow: none; }
+
+    .cl-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border: 3px solid var(--ink);
+      cursor: pointer;
+      background: var(--paper);
+      color: var(--ink);
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+    .cl-btn.on {
+      background: var(--blueprint);
+      color: var(--paper);
+      border-color: var(--blueprint);
+      box-shadow: none;
+    }
+
+    .reset-btn {
+      width: 100%;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 6px 0;
+      border: 3px solid var(--ink);
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      margin-top: 10px;
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+    .reset-btn:hover { background: var(--ink); color: var(--paper); }
+
+    /* ── KPI Grid ───────────────────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .kpi-card {
+      border: 3px solid var(--ink);
+      padding: 8px 9px;
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+    .kpi-label {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #777;
+      text-transform: uppercase;
+      line-height: 1.3;
+    }
+    .kpi-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      color: var(--ink);
+      line-height: 1.1;
+      margin-top: 2px;
+    }
+    .kpi-unit { font-size: 11px; font-weight: 700; color: #888; }
+
+    /* ── EDA Chart Cards ────────────────────────────────────────────── */
+    .eda-card {
+      border-bottom: 3px solid var(--ink);
+      padding: 10px 12px;
+    }
+    .eda-card:last-child { border-bottom: none; }
+    .eda-card-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      border-left: 3px solid var(--orange);
+      padding-left: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .eda-insight {
+      font-size: 9px;
+      color: #555;
+      letter-spacing: 0.03em;
+      line-height: 1.5;
+      margin-top: 4px;
+      border-left: 2px solid var(--grid);
+      padding-left: 5px;
+    }
+    .eda-canvas-wrap {
+      position: relative;
+      height: 160px;
+      margin: 6px 0 2px;
+    }
+
+    /* ── Map Overlay Controls ────────────────────────────────────────── */
+    #map-controls {
+      position: absolute;
+      top: 12px; right: 12px;
+      z-index: 800;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .mc-btn {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      width: 36px; height: 36px;
+      border: 3px solid var(--ink);
+      background: var(--paper);
+      cursor: pointer;
+      box-shadow: 4px 4px 0 var(--ink);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .mc-btn:hover { background: var(--ink); color: var(--paper); }
+    #layer-toggle-btn {
+      width: auto;
+      padding: 0 10px;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      gap: 5px;
+    }
+    #layer-panel {
+      display: none;
+      background: var(--paper);
+      border: 3px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--ink);
+      padding: 8px 10px;
+      font-size: 10px;
+    }
+    #layer-panel.open { display: block; }
+    .lp-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; cursor: pointer; }
+    .lp-row:last-child { margin-bottom: 0; }
+    .lp-row input[type=checkbox] { accent-color: var(--blueprint); width:13px; height:13px; cursor:pointer; }
+
+    /* ── Cell Inspector ─────────────────────────────────────────────── */
+    #inspector-empty {
+      color: #999;
+      font-size: 11px;
+      padding: 16px 12px;
+      line-height: 1.8;
+    }
+    #inspector-detail { display: none; }
+
+    .insp-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .tier-badge {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 4px 10px;
+      letter-spacing: 0.08em;
+      border: 3px solid;
+    }
+    .tier-badge.CRITICAL { background: var(--orange); color: #fff; border-color: var(--orange); }
+    .tier-badge.HIGH     { background: var(--pink);   color: #fff; border-color: var(--pink);   }
+    .cluster-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border: 3px solid var(--ink);
+      letter-spacing: 0.06em;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--grid);
+      font-size: 11px;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { color: #666; font-size: 10px; letter-spacing: 0.05em; }
+    .stat-value { font-weight: 700; font-size: 12px; }
+    .stat-value.warn { color: var(--orange); }
+    .stat-value.ok   { color: var(--green); }
+
+    /* temporal mini-bars in inspector */
+    .tbar-row { margin-bottom: 7px; }
+    .tbar-row:last-child { margin-bottom: 0; }
+    .tbar-label-row {
+      display: flex; justify-content: space-between;
+      font-size: 9px; margin-bottom: 3px; color: #555;
+    }
+    .tbar-track {
+      height: 7px;
+      background: var(--grid);
+      position: relative;
+    }
+    .tbar-fill {
+      position: absolute;
+      top: 0; left: 0; height: 100%;
+    }
+
+    /* ── Right Panel Chart ──────────────────────────────────────────── */
+    .donut-wrap { position: relative; width: 150px; height: 150px; margin: 0 auto 10px; }
+
+    .tier-legend-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 0; border-bottom: 1px solid var(--grid); font-size: 11px;
+    }
+    .tier-legend-row:last-child { border-bottom: none; }
+    .tl-dot { width: 12px; height: 12px; flex-shrink: 0; border: 2px solid var(--ink); }
+    .tl-name { flex: 1; margin-left: 7px; font-size: 10px; letter-spacing: 0.04em; }
+    .tl-count { font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 15px; }
+    .tl-pct { color: #888; font-size: 10px; margin-left: 6px; }
+
+    /* temporal overview (right panel, always visible) */
+    .ov-row { margin-bottom: 9px; }
+    .ov-row:last-child { margin-bottom: 0; }
+    .ov-label-row { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; }
+    .ov-label { color: #555; }
+    .ov-pct { font-weight: 700; }
+    .ov-track { height: 8px; background: var(--grid); }
+    .ov-fill  { height: 100%; }
+
+    /* ── Top 5 Table ────────────────────────────────────────────────── */
+    .top5-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+    .top5-table th {
+      text-align: left;
+      font-size: 9px;
+      letter-spacing: 0.09em;
+      color: #777;
+      padding: 3px 5px;
+      border-bottom: 2px solid var(--ink);
+      font-weight: 700;
+    }
+    .top5-table td {
+      padding: 5px 5px;
+      border-bottom: 1px solid var(--grid);
+    }
+    .top5-table tr:last-child td { border-bottom: none; }
+    .top5-table tr { cursor: pointer; }
+    .top5-table tr:hover td { background: #E8E4D8; }
+    .top5-rank {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800;
+      color: var(--orange);
+    }
+    .top5-nb { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ── Cluster Summary Table ──────────────────────────────────────── */
+    .cl-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+    .cl-table th {
+      text-align: left;
+      font-size: 9px;
+      letter-spacing: 0.09em;
+      color: #777;
+      padding: 3px 5px;
+      border-bottom: 2px solid var(--ink);
+      font-weight: 700;
+    }
+    .cl-table td {
+      padding: 5px 5px;
+      border-bottom: 1px solid var(--grid);
+    }
+    .cl-table tr:last-child td { border-bottom: none; }
+    .cl-dot { display:inline-block; width:9px; height:9px; border:2px solid var(--ink); vertical-align:middle; margin-right:4px; }
+
+    /* ── Neighborhood Overlay ───────────────────────────────────────── */
+    .nb-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink);
+      background: rgba(242,240,233,0.82);
+      border: 1.5px solid var(--ink);
+      padding: 2px 5px;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    /* ── Leaflet overrides ──────────────────────────────────────────── */
+    .leaflet-container { font-family: 'JetBrains Mono', monospace; }
+    .leaflet-tooltip {
+      background: var(--ink) !important;
+      color: var(--paper) !important;
+      border: 2px solid var(--paper) !important;
+      border-radius: 0 !important;
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 11px !important;
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.4) !important;
+      padding: 5px 9px !important;
+    }
+    .leaflet-tooltip-top::before { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- ══ TOP BAR ══════════════════════════════════════════════════════ -->
+<div id="topbar">
+  <div class="tb-left">
+    <div class="tb-logo">CHICAGO</div>
+    <div class="tb-title">CRASH RISK INTELLIGENCE PLATFORM</div>
+    <div class="tb-sub" id="tb-loaded">■ 206 PRIORITY CELLS LOADED</div>
+  </div>
+  <div class="tb-right">
+    <div class="tb-chip crit">CRITICAL: 30</div>
+    <div class="tb-chip high">HIGH: 176</div>
+    <div class="tb-live">LIVE</div>
+  </div>
+</div>
+
+<!-- ══ APP BODY ═════════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- ── LEFT PANEL ─────────────────────────────────────────────── -->
+  <aside id="left-panel">
+
+    <!-- FIXED: filters + KPIs always visible -->
+    <div id="lp-fixed">
+
+      <!-- FILTERS -->
+      <div class="sec-block">
+        <div class="sec-head">Filters</div>
+        <div class="sec-body">
+          <div class="f-label">Neighborhood</div>
+          <select class="f-select" id="nb-select">
+            <option value="all">All Neighborhoods</option>
+          </select>
+
+          <div class="f-label">Risk Tier</div>
+          <div class="chips">
+            <button class="tier-btn crit on" data-tier="CRITICAL">■ CRITICAL</button>
+            <button class="tier-btn high on" data-tier="HIGH">■ HIGH</button>
+          </div>
+
+          <div class="f-label">K-Means Cluster</div>
+          <div class="chips" id="cluster-chips">
+            <button class="cl-btn on" data-cl="all">All</button>
+          </div>
+
+          <button class="reset-btn" id="reset-btn">↺ RESET FILTERS</button>
+        </div>
+      </div>
+
+      <!-- SYSTEM METRICS -->
+      <div class="sec-block">
+        <div class="sec-head">System Metrics</div>
+        <div class="sec-body">
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">Priority<br>Cells</div>
+              <div class="kpi-value" id="kpi-total">206</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Avg Crashes<br>Per Cell</div>
+              <div class="kpi-value">99<span class="kpi-unit">.9</span></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Critical<br>Zones</div>
+              <div class="kpi-value" style="color:var(--orange)">30</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Avg Severe<br>Rate</div>
+              <div class="kpi-value">2.78<span class="kpi-unit">%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /lp-fixed -->
+
+    <!-- SCROLLABLE: EDA insights (interactive Chart.js) -->
+    <div id="lp-eda">
+      <div class="sec-block">
+        <div class="sec-head">EDA Insights</div>
+      </div>
+
+      <div class="eda-card sec-block">
+        <div class="eda-card-title">Temporal Breakdown <span style="color:#999;font-weight:400">avg %</span></div>
+        <div class="eda-canvas-wrap"><canvas id="eda-temporal"></canvas></div>
+        <div class="eda-insight">Rush hour dominates — 33% of crashes happen 7–9am & 4–7pm</div>
+      </div>
+
+      <div class="eda-card sec-block">
+        <div class="eda-card-title">Top 10 Neighborhoods <span style="color:#999;font-weight:400">crashes</span></div>
+        <div class="eda-canvas-wrap" style="height:210px"><canvas id="eda-topnb"></canvas></div>
+        <div class="eda-insight">West Town & Austin lead total crash volume in priority cells</div>
+      </div>
+
+      <div class="eda-card sec-block">
+        <div class="eda-card-title">Speed Distribution <span style="color:#999;font-weight:400">mph</span></div>
+        <div class="eda-canvas-wrap"><canvas id="eda-speed"></canvas></div>
+        <div class="eda-insight">Most cells cluster 29–32 mph — speed limit corridors at risk</div>
+      </div>
+
+      <div class="eda-card sec-block">
+        <div class="eda-card-title">Severe Rate by Tier <span style="color:#999;font-weight:400">%</span></div>
+        <div class="eda-canvas-wrap"><canvas id="eda-sev"></canvas></div>
+        <div class="eda-insight">CRITICAL cells average 3.9% severe rate vs 2.6% for HIGH</div>
+      </div>
+
+      <div class="eda-card sec-block">
+        <div class="eda-card-title">Cluster Profiles <span style="color:#999;font-weight:400">avg risk score</span></div>
+        <div class="eda-canvas-wrap"><canvas id="eda-clusters"></canvas></div>
+        <div class="eda-insight">Cluster 0 has highest avg risk; Cluster 8 is largest group</div>
+      </div>
+
+      <div class="eda-card sec-block">
+        <div class="eda-card-title">Hit &amp; Run vs Severe Rate</div>
+        <div class="eda-canvas-wrap" style="height:180px"><canvas id="eda-scatter"></canvas></div>
+        <div class="eda-insight">Strong correlation — hit &amp; run cells show elevated severity</div>
+      </div>
+
+      <div class="eda-card">
+        <div class="eda-card-title">Risk Score Distribution</div>
+        <div class="eda-canvas-wrap"><canvas id="eda-risk"></canvas></div>
+        <div class="eda-insight">Long right tail — 30 CRITICAL cells sit far above baseline</div>
+      </div>
+
+    </div>
+
+  </aside>
+
+  <!-- ── MAP ────────────────────────────────────────────────────── -->
+  <div id="map-container">
+    <div id="map"></div>
+
+    <!-- Custom zoom + layer controls -->
+    <div id="map-controls">
+      <button class="mc-btn" id="zoom-in" title="Zoom In">+</button>
+      <button class="mc-btn" id="zoom-out" title="Zoom Out">−</button>
+      <button class="mc-btn" id="layer-toggle-btn" style="width:auto;padding:0 10px;font-size:10px;letter-spacing:0.07em;">☰ LAYERS</button>
+      <div id="layer-panel">
+        <div class="lp-row"><input type="checkbox" id="lyr-cl0" checked> <label for="lyr-cl0"><span style="display:inline-block;width:10px;height:10px;background:#FF1A00;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>ZONE ALPHA</label></div>
+        <div class="lp-row"><input type="checkbox" id="lyr-cl2" checked> <label for="lyr-cl2"><span style="display:inline-block;width:10px;height:10px;background:#1A40FF;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>24H SURGE</label></div>
+        <div class="lp-row"><input type="checkbox" id="lyr-cl3" checked> <label for="lyr-cl3"><span style="display:inline-block;width:10px;height:10px;background:#00A86B;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>RUSH GRID</label></div>
+        <div class="lp-row"><input type="checkbox" id="lyr-cl4" checked> <label for="lyr-cl4"><span style="display:inline-block;width:10px;height:10px;background:#CC9900;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>PEAK PULSE</label></div>
+        <div class="lp-row"><input type="checkbox" id="lyr-cl8" checked> <label for="lyr-cl8"><span style="display:inline-block;width:10px;height:10px;background:#CC0066;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>SEVERITY APEX</label></div>
+        <div class="lp-row"><input type="checkbox" id="lyr-nb" checked> <label for="lyr-nb">Neighborhood Borders</label></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT PANEL ────────────────────────────────────────────── -->
+  <aside id="right-panel">
+
+    <!-- CLUSTER NAME GUIDE — always visible -->
+    <div class="sec-block">
+      <div class="sec-head">Cluster Guide</div>
+      <div style="padding:8px 12px;display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="display:inline-block;width:9px;height:9px;background:#FF1A00;border:2px solid #1A1A1A;flex-shrink:0;margin-top:3px"></span>
+          <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">ZONE ALPHA</b> — All 30 CRITICAL cells. Highest-priority deployment targets regardless of crash volume.</div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="display:inline-block;width:9px;height:9px;background:#1A40FF;border:2px solid #1A1A1A;flex-shrink:0;margin-top:3px"></span>
+          <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">24H SURGE</b> — Highest volume (272 crashes avg). Active day &amp; night. Needs 24h enforcement.</div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="display:inline-block;width:9px;height:9px;background:#00A86B;border:2px solid #1A1A1A;flex-shrink:0;margin-top:3px"></span>
+          <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">RUSH GRID</b> — 42.8% of crashes at peak hours. Target AM/PM commute windows (7–9am, 4–7pm).</div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="display:inline-block;width:9px;height:9px;background:#CC9900;border:2px solid #1A1A1A;flex-shrink:0;margin-top:3px"></span>
+          <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">PEAK PULSE</b> — 62.5% commuter-driven. Low baseline risk but spikes during rush. Temporary signage priority.</div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="display:inline-block;width:9px;height:9px;background:#CC0066;border:2px solid #1A1A1A;flex-shrink:0;margin-top:3px"></span>
+          <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">SEVERITY APEX</b> — Highest risk score (0.13) &amp; severe rate (3.81%). Low volume, high consequence. Immediate infrastructure review.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CELL INSPECTOR -->
+    <div class="sec-block">
+      <div class="sec-head">Cell Inspector</div>
+      <div id="inspector-empty">
+        No cell selected<br>
+        <span style="color:#bbb;font-size:9px;">← Click any grid cell on the map</span>
+      </div>
+      <div id="inspector-detail" class="sec-body">
+        <div class="insp-header">
+          <span class="tier-badge" id="insp-tier">—</span>
+          <span class="cluster-badge" id="insp-cluster">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">NEIGHBORHOOD</span>
+          <span class="stat-value" id="insp-nb">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">GRID CENTER</span>
+          <span class="stat-value" id="insp-grid" style="font-size:10px;">—</span>
+        </div>
+        <div class="divider"></div>
+        <div class="stat-row">
+          <span class="stat-label">TOTAL CRASHES</span>
+          <span class="stat-value" id="insp-crashes">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">SEVERE CRASHES</span>
+          <span class="stat-value" id="insp-severe">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">SEVERE RATE</span>
+          <span class="stat-value warn" id="insp-sev-rate">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">MEAN SPEED</span>
+          <span class="stat-value" id="insp-speed">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">RISK SCORE</span>
+          <span class="stat-value" id="insp-risk">—</span>
+        </div>
+        <div class="divider"></div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;color:#777;margin-bottom:8px;">TEMPORAL BREAKDOWN</div>
+        <div class="tbar-row">
+          <div class="tbar-label-row"><span>Rush Hour</span><span id="tb-rush">—</span></div>
+          <div class="tbar-track"><div class="tbar-fill" id="tbf-rush" style="background:var(--orange)"></div></div>
+        </div>
+        <div class="tbar-row">
+          <div class="tbar-label-row"><span>Hit &amp; Run</span><span id="tb-hitr">—</span></div>
+          <div class="tbar-track"><div class="tbar-fill" id="tbf-hitr" style="background:var(--pink)"></div></div>
+        </div>
+        <div class="tbar-row">
+          <div class="tbar-label-row"><span>Weekend</span><span id="tb-wknd">—</span></div>
+          <div class="tbar-track"><div class="tbar-fill" id="tbf-wknd" style="background:var(--blueprint)"></div></div>
+        </div>
+        <div class="tbar-row">
+          <div class="tbar-label-row"><span>Night</span><span id="tb-nght">—</span></div>
+          <div class="tbar-track"><div class="tbar-fill" id="tbf-nght" style="background:var(--ink)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DISTRIBUTION: Tier + Cluster -->
+    <div class="sec-block">
+      <div class="sec-head">Risk Distribution</div>
+      <div class="sec-body">
+        <div class="donut-wrap">
+          <canvas id="donut-chart"></canvas>
+        </div>
+        <div class="tier-legend-row">
+          <div class="tl-dot" style="background:var(--orange)"></div>
+          <div class="tl-name">CRITICAL</div>
+          <div class="tl-count" id="leg-crit-n">30</div>
+          <div class="tl-pct" id="leg-crit-pct">14.6%</div>
+        </div>
+        <div class="tier-legend-row">
+          <div class="tl-dot" style="background:var(--pink)"></div>
+          <div class="tl-name">HIGH</div>
+          <div class="tl-count" id="leg-high-n">176</div>
+          <div class="tl-pct" id="leg-high-pct">85.4%</div>
+        </div>
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--grid)">
+          <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;color:#777;margin-bottom:6px;">CLUSTER LEGEND</div>
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <div class="tier-legend-row" style="border:none;padding:2px 0;gap:6px"><div class="tl-dot" style="background:#FF1A00;flex-shrink:0"></div><div style="font-size:9px;flex:1"><b>ZONE ALPHA</b><br><span style="color:#999">53 cells · critical cores</span></div></div>
+            <div class="tier-legend-row" style="border:none;padding:2px 0;gap:6px"><div class="tl-dot" style="background:#1A40FF;flex-shrink:0"></div><div style="font-size:9px;flex:1"><b>24H SURGE</b><br><span style="color:#999">22 cells · day+night active</span></div></div>
+            <div class="tier-legend-row" style="border:none;padding:2px 0;gap:6px"><div class="tl-dot" style="background:#00A86B;flex-shrink:0"></div><div style="font-size:9px;flex:1"><b>RUSH GRID</b><br><span style="color:#999">46 cells · 42% rush hour</span></div></div>
+            <div class="tier-legend-row" style="border:none;padding:2px 0;gap:6px"><div class="tl-dot" style="background:#CC9900;flex-shrink:0"></div><div style="font-size:9px;flex:1"><b>PEAK PULSE</b><br><span style="color:#999">36 cells · 62% commuter</span></div></div>
+            <div class="tier-legend-row" style="border:none;padding:2px 0;gap:6px"><div class="tl-dot" style="background:#CC0066;flex-shrink:0"></div><div style="font-size:9px;flex:1"><b>SEVERITY APEX</b><br><span style="color:#999">49 cells · 3.8% severe rate</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEMPORAL OVERVIEW -->
+    <div class="sec-block">
+      <div class="sec-head">Temporal Overview</div>
+      <div class="sec-body">
+        <div class="ov-row">
+          <div class="ov-label-row"><span class="ov-label">Rush Hour</span><span class="ov-pct">33.4%</span></div>
+          <div class="ov-track"><div class="ov-fill" style="width:33.4%;background:var(--orange)"></div></div>
+        </div>
+        <div class="ov-row">
+          <div class="ov-label-row"><span class="ov-label">Hit &amp; Run</span><span class="ov-pct">25.7%</span></div>
+          <div class="ov-track"><div class="ov-fill" style="width:25.7%;background:var(--pink)"></div></div>
+        </div>
+        <div class="ov-row">
+          <div class="ov-label-row"><span class="ov-label">Weekend</span><span class="ov-pct">11.7%</span></div>
+          <div class="ov-track"><div class="ov-fill" style="width:11.7%;background:var(--blueprint)"></div></div>
+        </div>
+        <div class="ov-row">
+          <div class="ov-label-row"><span class="ov-label">Night</span><span class="ov-pct">3.5%</span></div>
+          <div class="ov-track"><div class="ov-fill" style="width:3.5%;background:var(--ink)"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOP 5 CRITICAL ZONES -->
+    <div class="sec-block">
+      <div class="sec-head">Top 5 Critical Zones</div>
+      <div class="sec-body">
+        <table class="top5-table" id="top5-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>NEIGHBORHOOD</th>
+              <th>CRASHES</th>
+              <th>SEV%</th>
+            </tr>
+          </thead>
+          <tbody id="top5-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CLUSTER ANALYSIS -->
+    <div class="sec-block">
+      <div class="sec-head">Cluster Analysis</div>
+      <div class="sec-body">
+        <table class="cl-table" id="cl-table">
+          <thead>
+            <tr>
+              <th>CLUSTER</th>
+              <th>CELLS</th>
+              <th>AVG RISK</th>
+              <th>CRIT</th>
+            </tr>
+          </thead>
+          <tbody id="cl-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </aside>
+</div><!-- /app -->
+
+<!-- ══ STATUS BAR ════════════════════════════════════════════════════ -->
+<div id="statusbar">
+  <span id="sb-coords">LAT: — · LON: —</span>
+  <span id="sb-cells">VISIBLE CELLS: 206 | FILTERED: 0 HIDDEN</span>
+  <span>ZOOM: 13 · CHICAGO, IL · DATA: 2015–2023 · CMU ML</span>
+</div>
+
+<!-- ══ SCRIPT ════════════════════════════════════════════════════════ -->
+<script>
+/* ── State ──────────────────────────────────────────────────────── */
+const state = {
+  activeTiers: new Set(['CRITICAL','HIGH']),
+  activeCluster: 'all',
+  activeNeighborhood: 'all',
+  selected: null
+};
+
+const TIER_COLORS = {
+  CRITICAL: '#FF4D00',
+  HIGH:     '#FF2B8C',
+  MONITOR:  '#2B4CFF',
+  BASELINE: '#00B884'
+};
+const CLUSTER_COLORS = ['#2B4CFF','#FF4D00','#00B884','#FFD000','#FF2B8C','#9B59B6','#1ABC9C','#E67E22','#34495E'];
+
+/* ── Build Neighborhood Dropdown ──────────────────────────────── */
+const nbSelect = document.getElementById('nb-select');
+META.neighborhoods.sort().forEach(n => {
+  const opt = document.createElement('option');
+  opt.value = n; opt.textContent = n;
+  nbSelect.appendChild(opt);
+});
+
+/* ── Build Cluster Pills ───────────────────────────────────────── */
+const clChips = document.getElementById('cluster-chips');
+META.clusterIds.forEach(cid => {
+  const btn = document.createElement('button');
+  btn.className = 'cl-btn';
+  btn.dataset.cl = cid;
+  btn.textContent = cid;
+  clChips.appendChild(btn);
+});
+
+/* ── Leaflet Map ───────────────────────────────────────────────── */
+const map = L.map('map', {
+  center: [41.855, -87.66],
+  zoom: 13,
+  zoomControl: false,
+  attributionControl: true
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; OpenStreetMap contributors',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+// Custom panes for correct z-order:
+// 250 = neighborhood borders (below heatmap)
+// 400 = heatmap (default overlayPane)
+// 500 = click rectangles (above heatmap, pointer events)
+map.createPane('neighborhoodPane');
+map.getPane('neighborhoodPane').style.zIndex = 250;
+map.getPane('neighborhoodPane').style.pointerEvents = 'auto';
+
+map.createPane('cellPane');
+map.getPane('cellPane').style.zIndex = 500;
+
+/* ── Heatmap Layer — one per K-Means cluster ───────────────────── */
+// Each cluster gets a completely distinct vivid color palette
+// Creative cluster names + distinct colors
+const CLUSTER_META = {
+  0: { name: 'ZONE ALPHA',    sub: '30 Critical cores',    color: '#FF1A00', gradient: { 0.0:'#FFE066', 0.4:'#FF6600', 0.78:'#FF1A00', 1.0:'#8B0000' } },
+  2: { name: '24H SURGE',     sub: '272 avg crashes/cell', color: '#1A40FF', gradient: { 0.0:'#B3C6FF', 0.4:'#4D79FF', 0.78:'#1A40FF', 1.0:'#001199' } },
+  3: { name: 'RUSH GRID',     sub: '42.8% rush-hour risk', color: '#00A86B', gradient: { 0.0:'#A3F0D6', 0.4:'#00CC80', 0.78:'#00A86B', 1.0:'#004D33' } },
+  4: { name: 'PEAK PULSE',    sub: '62.5% commuter-driven',color: '#CC9900', gradient: { 0.0:'#FFF3A3', 0.4:'#FFD000', 0.78:'#CC9900', 1.0:'#805E00' } },
+  8: { name: 'SEVERITY APEX', sub: '3.81% severe rate',    color: '#CC0066', gradient: { 0.0:'#FFB3D9', 0.4:'#FF3399', 0.78:'#CC0066', 1.0:'#660033' } },
+};
+const CLUSTER_HEAT = Object.fromEntries(
+  Object.entries(CLUSTER_META).map(([cid, m]) => [cid, { gradient: m.gradient }])
+);
+
+const heatOpts = {
+  radius: 40,
+  blur: 28,
+  maxZoom: 18,
+  max: 1.0,
+  minOpacity: 0.30   // ← lowered: map tiles show through nicely
+};
+
+function buildClusterPoints(cid, filterFn) {
+  return CELLS
+    .filter((c, i) => c.cluster === cid && filterFn(c, i))
+    .map(c => {
+      const lat = c.lat + 0.0025;
+      const lon = c.lon + 0.0025;
+      const intensity = 0.50 + 0.50 * Math.min(c.crashes / 350, 1);
+      return [lat, lon, intensity];
+    });
+}
+
+// Create one L.heatLayer per cluster
+const heatLayers = {};
+META.clusterIds.forEach(cid => {
+  heatLayers[cid] = L.heatLayer(
+    buildClusterPoints(cid, () => true),
+    { ...heatOpts, ...CLUSTER_HEAT[cid] }
+  ).addTo(map);
+});
+
+/* ── Invisible Click Rectangles ────────────────────────────────── */
+const cellRects = [];     // index → L.rectangle
+const cellGroup = L.layerGroup().addTo(map);
+let selectedRect = null;
+
+const G = META.gridSize;
+
+CELLS.forEach((c, i) => {
+  const bounds = [[c.lat, c.lon], [c.lat + G, c.lon + G]];
+  const rect = L.rectangle(bounds, {
+    color: 'transparent',
+    weight: 0,
+    fillColor: 'transparent',
+    fillOpacity: 0,
+    className: 'cell-rect',
+    pane: 'cellPane'
+  });
+
+  const tierColor = TIER_COLORS[c.tier] || '#999';
+
+  rect.bindTooltip(
+    `<b>${c.tier}</b> · ${c.neighborhood}<br>${c.crashes} crashes · ${c.severeRate.toFixed(1)}% severe`,
+    { sticky: true, direction: 'top' }
+  );
+
+  rect.on('mouseover', function() {
+    if (this !== selectedRect) {
+      this.setStyle({ color: tierColor, weight: 2, fillColor: tierColor, fillOpacity: 0.25 });
+    }
+  });
+  rect.on('mouseout', function() {
+    if (this !== selectedRect) {
+      this.setStyle({ color: 'transparent', weight: 0, fillColor: 'transparent', fillOpacity: 0 });
+    }
+  });
+  rect.on('click', function() {
+    selectCell(i);
+  });
+
+  rect.addTo(cellGroup);
+  cellRects.push(rect);
+});
+
+/* ── Selection Logic ───────────────────────────────────────────── */
+function selectCell(i) {
+  // Deselect previous
+  if (selectedRect) {
+    selectedRect.setStyle({ color: 'transparent', weight: 0, fillColor: 'transparent', fillOpacity: 0 });
+  }
+  const c = CELLS[i];
+  const rect = cellRects[i];
+  selectedRect = rect;
+  const tierColor = TIER_COLORS[c.tier] || '#999';
+  rect.setStyle({ color: '#2B4CFF', weight: 3, fillColor: tierColor, fillOpacity: 0.45 });
+  state.selected = i;
+  renderInspector(c);
+}
+
+map.on('click', function(e) {
+  // If click doesn't hit a rect, deselect
+  const target = e.originalEvent.target;
+  if (target === document.getElementById('map') || target.classList.contains('leaflet-tile')) {
+    if (selectedRect) {
+      selectedRect.setStyle({ color: 'transparent', weight: 0, fillColor: 'transparent', fillOpacity: 0 });
+      selectedRect = null;
+      state.selected = null;
+    }
+    document.getElementById('inspector-empty').style.display = '';
+    document.getElementById('inspector-detail').style.display = 'none';
+  }
+});
+
+/* ── Inspector Render ──────────────────────────────────────────── */
+function renderInspector(c) {
+  document.getElementById('inspector-empty').style.display = 'none';
+  document.getElementById('inspector-detail').style.display = '';
+
+  const tierEl = document.getElementById('insp-tier');
+  tierEl.textContent = c.tier;
+  tierEl.className = 'tier-badge ' + c.tier;
+
+  const cm = CLUSTER_META[c.cluster];
+  const clBadge = document.getElementById('insp-cluster');
+  clBadge.textContent = cm ? cm.name : ('C' + c.cluster);
+  clBadge.style.borderColor = cm ? cm.color : '#1A1A1A';
+  clBadge.style.color = cm ? cm.color : '#1A1A1A';
+  document.getElementById('insp-nb').textContent = c.neighborhood;
+  document.getElementById('insp-grid').textContent =
+    c.lat.toFixed(3) + '°N / ' + c.lon.toFixed(3) + '°W';
+  document.getElementById('insp-crashes').textContent = c.crashes;
+  document.getElementById('insp-severe').textContent = c.severe;
+  document.getElementById('insp-sev-rate').textContent = c.severeRate.toFixed(2) + '%';
+  document.getElementById('insp-speed').textContent = c.speed.toFixed(1) + ' mph';
+  document.getElementById('insp-risk').textContent = c.riskScore.toFixed(4);
+
+  const bars = [
+    ['rush', c.pctRushHour],
+    ['hitr', c.pctHitRun],
+    ['wknd', c.pctWeekend],
+    ['nght', c.pctNight],
+  ];
+  bars.forEach(([k, v]) => {
+    document.getElementById('tb-' + k).textContent = v.toFixed(1) + '%';
+    document.getElementById('tbf-' + k).style.width = Math.min(v, 100) + '%';
+  });
+}
+
+/* ── Filtering ─────────────────────────────────────────────────── */
+function getVisibleIndices() {
+  const vis = [];
+  CELLS.forEach((c, i) => {
+    if (!state.activeTiers.has(c.tier)) return;
+    if (state.activeCluster !== 'all' && String(c.cluster) !== state.activeCluster) return;
+    if (state.activeNeighborhood !== 'all' && c.neighborhood !== state.activeNeighborhood) return;
+    vis.push(i);
+  });
+  return vis;
+}
+
+function applyFilters() {
+  const visSet = new Set(getVisibleIndices());
+  const total = CELLS.length;
+  const vis = visSet.size;
+
+  // Update click rects visibility
+  CELLS.forEach((c, i) => {
+    if (visSet.has(i)) {
+      if (!cellGroup.hasLayer(cellRects[i])) cellGroup.addLayer(cellRects[i]);
+    } else {
+      cellGroup.removeLayer(cellRects[i]);
+    }
+  });
+
+  // Rebuild per-cluster heat layers for visible cells
+  META.clusterIds.forEach(cid => {
+    const pts = CELLS
+      .filter((c, i) => visSet.has(i) && c.cluster === cid)
+      .map(c => [c.lat + 0.0025, c.lon + 0.0025, 0.50 + 0.50 * Math.min(c.crashes / 350, 1)]);
+    heatLayers[cid].setLatLngs(pts);
+  });
+
+  // Deselect if hidden
+  if (state.selected !== null && !visSet.has(state.selected)) {
+    if (selectedRect) selectedRect.setStyle({ color:'transparent', weight:0, fillColor:'transparent', fillOpacity:0 });
+    selectedRect = null; state.selected = null;
+    document.getElementById('inspector-empty').style.display = '';
+    document.getElementById('inspector-detail').style.display = 'none';
+  }
+
+  // Update counts
+  document.getElementById('kpi-total').textContent = vis;
+  document.getElementById('sb-cells').textContent =
+    `VISIBLE CELLS: ${vis} | FILTERED: ${total - vis} HIDDEN`;
+
+  // Update donut
+  const critN = CELLS.filter((c,i) => visSet.has(i) && c.tier === 'CRITICAL').length;
+  const highN = vis - critN;
+  updateDonut(critN, highN);
+}
+
+/* ── Donut Chart ───────────────────────────────────────────────── */
+let donutChart = null;
+function initDonut() {
+  const ctx = document.getElementById('donut-chart').getContext('2d');
+  donutChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['CRITICAL','HIGH'],
+      datasets: [{
+        data: [30, 176],
+        backgroundColor: ['#FF4D00','#FF2B8C'],
+        borderColor: '#1A1A1A',
+        borderWidth: 3,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: '62%',
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.parsed}` }
+      }},
+      animation: { duration: 300 }
+    }
+  });
+}
+
+function updateDonut(critN, highN) {
+  if (!donutChart) return;
+  donutChart.data.datasets[0].data = [critN, highN];
+  donutChart.update();
+  const total = critN + highN || 1;
+  document.getElementById('leg-crit-n').textContent = critN;
+  document.getElementById('leg-crit-pct').textContent = (critN/total*100).toFixed(1) + '%';
+  document.getElementById('leg-high-n').textContent = highN;
+  document.getElementById('leg-high-pct').textContent = (highN/total*100).toFixed(1) + '%';
+}
+
+initDonut();
+
+/* ── Top 5 Critical Zones Table ────────────────────────────────── */
+function buildTop5() {
+  const crits = CELLS
+    .filter(c => c.tier === 'CRITICAL')
+    .sort((a,b) => b.total_crashes - a.total_crashes)
+    .slice(0,5);
+  const tbody = document.getElementById('top5-body');
+  tbody.innerHTML = '';
+  crits.forEach((c, rank) => {
+    const tr = document.createElement('tr');
+    const idx = CELLS.indexOf(c);
+    tr.innerHTML = `
+      <td class="top5-rank">${rank+1}</td>
+      <td class="top5-nb">${c.neighborhood}</td>
+      <td>${c.crashes}</td>
+      <td>${c.severeRate.toFixed(1)}%</td>`;
+    tr.addEventListener('click', () => {
+      map.flyTo([c.lat + 0.0025, c.lon + 0.0025], 15, { duration: 1.2 });
+      setTimeout(() => selectCell(idx), 500);
+    });
+    tbody.appendChild(tr);
+  });
+}
+buildTop5();
+
+/* ── Cluster Summary Table ─────────────────────────────────────── */
+function buildClusterTable() {
+  const tbody = document.getElementById('cl-body');
+  tbody.innerHTML = '';
+  META.clusterIds.forEach(cid => {
+    const m = CLUSTER_META[cid];
+    const cells = CELLS.filter(c => c.cluster === cid);
+    const avgRisk = (cells.reduce((s,c) => s + c.riskScore, 0) / cells.length).toFixed(3);
+    const critCount = cells.filter(c => c.tier === 'CRITICAL').length;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="cl-dot" style="background:${m.color}"></span><span style="font-size:9px;font-weight:700">${m.name}</span></td>
+      <td>${cells.length}</td>
+      <td>${avgRisk}</td>
+      <td style="color:var(--orange);font-weight:700">${critCount || '—'}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+buildClusterTable();
+
+/* ── EDA Interactive Charts (computed from CELLS data) ─────────── */
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: { duration: 400 },
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#1A1A1A',
+      titleFont: { family: 'Space Grotesk', weight: '700', size: 11 },
+      bodyFont:  { family: 'JetBrains Mono', size: 10 },
+      padding: 8,
+      cornerRadius: 0,
+      borderColor: '#F2F0E9',
+      borderWidth: 1
+    }
+  },
+  scales: {
+    x: {
+      grid: { color: '#D1D1D1', lineWidth: 1 },
+      ticks: { font: { family: 'JetBrains Mono', size: 9 }, color: '#555' }
+    },
+    y: {
+      grid: { color: '#D1D1D1', lineWidth: 1 },
+      ticks: { font: { family: 'JetBrains Mono', size: 9 }, color: '#555' }
+    }
+  }
+};
+
+// 1. Temporal Breakdown — avg pct by tier
+(function() {
+  const crit = CELLS.filter(c => c.tier === 'CRITICAL');
+  const high = CELLS.filter(c => c.tier === 'HIGH');
+  const avg = (arr, key) => (arr.reduce((s,c) => s + (c[key]||0), 0) / arr.length).toFixed(1);
+  const labels = ['Rush Hour', 'Hit & Run', 'Weekend', 'Night'];
+  const keys   = ['pctRushHour','pctHitRun','pctWeekend','pctNight'];
+  new Chart(document.getElementById('eda-temporal'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'CRITICAL', data: keys.map(k => avg(crit, k)), backgroundColor: '#FF4D00', borderColor: '#1A1A1A', borderWidth: 2 },
+        { label: 'HIGH',     data: keys.map(k => avg(high, k)), backgroundColor: '#FF2B8C', borderColor: '#1A1A1A', borderWidth: 2 }
+      ]
+    },
+    options: { ...CHART_DEFAULTS, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: true, labels: { font: { family: 'JetBrains Mono', size: 9 }, color: '#1A1A1A', boxWidth: 12, padding: 8 } } } }
+  });
+})();
+
+// 2. Top 10 Neighborhoods by crash total
+(function() {
+  const nbMap = {};
+  CELLS.forEach(c => { nbMap[c.neighborhood] = (nbMap[c.neighborhood]||0) + c.crashes; });
+  const sorted = Object.entries(nbMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const colors = sorted.map(([n]) => CELLS.find(c=>c.neighborhood===n)?.tier==='CRITICAL' ? '#FF4D00' : '#FF2B8C');
+  new Chart(document.getElementById('eda-topnb'), {
+    type: 'bar',
+    data: {
+      labels: sorted.map(([n])=>n.length>14?n.slice(0,13)+'…':n),
+      datasets: [{ data: sorted.map(([,v])=>v), backgroundColor: colors, borderColor: '#1A1A1A', borderWidth: 2 }]
+    },
+    options: { ...CHART_DEFAULTS, indexAxis: 'y', scales: { x: CHART_DEFAULTS.scales.x, y: { ...CHART_DEFAULTS.scales.y, ticks: { ...CHART_DEFAULTS.scales.y.ticks, font: { family: 'JetBrains Mono', size: 8 } } } } }
+  });
+})();
+
+// 3. Speed Distribution (histogram buckets)
+(function() {
+  const buckets = {};
+  const step = 1;
+  CELLS.forEach(c => {
+    const b = Math.floor(c.speed / step) * step;
+    buckets[b] = (buckets[b]||0) + 1;
+  });
+  const keys = Object.keys(buckets).sort((a,b)=>+a-+b);
+  new Chart(document.getElementById('eda-speed'), {
+    type: 'bar',
+    data: {
+      labels: keys.map(k=>k+'mph'),
+      datasets: [{ data: keys.map(k=>buckets[k]), backgroundColor: '#2B4CFF', borderColor: '#1A1A1A', borderWidth: 2 }]
+    },
+    options: { ...CHART_DEFAULTS }
+  });
+})();
+
+// 4. Severe Rate distribution: CRITICAL vs HIGH box-style bar
+(function() {
+  const bins = ['<2%','2–3%','3–4%','4–5%','>5%'];
+  const critBins = [0,0,0,0,0];
+  const highBins = [0,0,0,0,0];
+  CELLS.forEach(c => {
+    const r = c.severeRate;
+    const arr = c.tier === 'CRITICAL' ? critBins : highBins;
+    if (r < 2) arr[0]++;
+    else if (r < 3) arr[1]++;
+    else if (r < 4) arr[2]++;
+    else if (r < 5) arr[3]++;
+    else arr[4]++;
+  });
+  new Chart(document.getElementById('eda-sev'), {
+    type: 'bar',
+    data: {
+      labels: bins,
+      datasets: [
+        { label: 'CRITICAL', data: critBins, backgroundColor: '#FF4D00', borderColor: '#1A1A1A', borderWidth: 2 },
+        { label: 'HIGH',     data: highBins, backgroundColor: '#FF2B8C', borderColor: '#1A1A1A', borderWidth: 2 }
+      ]
+    },
+    options: { ...CHART_DEFAULTS, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: true, labels: { font: { family: 'JetBrains Mono', size: 9 }, color: '#1A1A1A', boxWidth: 12, padding: 8 } } } }
+  });
+})();
+
+// 5. Cluster Profile: avg risk score per cluster
+(function() {
+  const clColors = ['#2B4CFF','#FF4D00','#00B884','#FFD000','#FF2B8C'];
+  const data = META.clusterIds.map((cid, i) => {
+    const cells = CELLS.filter(c => c.cluster === cid);
+    return { cid, avg: cells.reduce((s,c)=>s+c.riskScore,0)/cells.length, count: cells.length, color: clColors[i] };
+  });
+  new Chart(document.getElementById('eda-clusters'), {
+    type: 'bar',
+    data: {
+      labels: data.map(d => CLUSTER_META[d.cid]?.name || `C${d.cid}`),
+      datasets: [{ data: data.map(d=>+d.avg.toFixed(4)), backgroundColor: data.map(d=>d.color), borderColor: '#1A1A1A', borderWidth: 2 }]
+    },
+    options: { ...CHART_DEFAULTS }
+  });
+})();
+
+// 6. Scatter: Hit & Run % vs Severe Rate (sample 80 cells max)
+(function() {
+  const sample = CELLS.slice().sort(()=>Math.random()-0.5).slice(0,80);
+  new Chart(document.getElementById('eda-scatter'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'CRITICAL', data: sample.filter(c=>c.tier==='CRITICAL').map(c=>({x:c.pctHitRun, y:c.severeRate})), backgroundColor: 'rgba(255,77,0,0.75)', borderColor: '#1A1A1A', borderWidth: 1, pointRadius: 5 },
+        { label: 'HIGH',     data: sample.filter(c=>c.tier==='HIGH').map(c=>({x:c.pctHitRun, y:c.severeRate})),     backgroundColor: 'rgba(255,43,140,0.55)', borderColor: '#1A1A1A', borderWidth: 1, pointRadius: 4 }
+      ]
+    },
+    options: { ...CHART_DEFAULTS, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: true, labels: { font: { family: 'JetBrains Mono', size: 9 }, color: '#1A1A1A', boxWidth: 12, padding: 8 } } },
+      scales: { x: { ...CHART_DEFAULTS.scales.x, title: { display: true, text: 'Hit & Run %', font: { size: 9, family: 'JetBrains Mono' }, color: '#777' } }, y: { ...CHART_DEFAULTS.scales.y, title: { display: true, text: 'Severe Rate %', font: { size: 9, family: 'JetBrains Mono' }, color: '#777' } } }
+    }
+  });
+})();
+
+// 7. Risk Score Distribution histogram
+(function() {
+  const step = 0.01;
+  const buckets = {};
+  CELLS.forEach(c => {
+    const b = (Math.floor(c.riskScore / step) * step).toFixed(2);
+    buckets[b] = (buckets[b]||0) + 1;
+  });
+  const keys = Object.keys(buckets).sort((a,b)=>+a-+b);
+  new Chart(document.getElementById('eda-risk'), {
+    type: 'bar',
+    data: {
+      labels: keys.map(k=>(+k).toFixed(2)),
+      datasets: [{ data: keys.map(k=>buckets[k]), backgroundColor: keys.map(k=>+k>0.14?'#FF4D00':+k>0.10?'#FF2B8C':'#2B4CFF'), borderColor: '#1A1A1A', borderWidth: 1 }]
+    },
+    options: { ...CHART_DEFAULTS }
+  });
+})();
+
+/* ── Filter Event Handlers ─────────────────────────────────────── */
+// (neighborhood change is handled by buildNeighborhoodLayer → applyFilters above)
+
+document.querySelectorAll('.tier-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const tier = this.dataset.tier;
+    if (state.activeTiers.has(tier)) {
+      state.activeTiers.delete(tier);
+      this.classList.remove('on');
+    } else {
+      state.activeTiers.add(tier);
+      this.classList.add('on');
+    }
+    applyFilters();
+  });
+});
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.cl-btn');
+  if (!btn) return;
+  document.querySelectorAll('.cl-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  state.activeCluster = btn.dataset.cl;
+  applyFilters();
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  state.activeTiers = new Set(['CRITICAL','HIGH']);
+  state.activeCluster = 'all';
+  state.activeNeighborhood = 'all';
+  nbSelect.value = 'all';
+  document.querySelectorAll('.tier-btn').forEach(b => b.classList.add('on'));
+  document.querySelectorAll('.cl-btn').forEach(b => b.classList.toggle('on', b.dataset.cl === 'all'));
+  applyFilters();
+});
+
+/* ── Neighborhood Polygon Layer ────────────────────────────────── */
+// Count priority cells per neighborhood for intensity shading
+const nbCellCount = {};
+CELLS.forEach(c => { nbCellCount[c.neighborhood] = (nbCellCount[c.neighborhood] || 0) + 1; });
+const maxNbCount = Math.max(...Object.values(nbCellCount));
+
+let activeNbLayer = null;
+const nbGroup = L.layerGroup().addTo(map);
+
+function buildNeighborhoodLayer() {
+  nbGroup.clearLayers();
+
+  L.geoJSON(NEIGHBORHOODS_GEO, {
+    pane: 'neighborhoodPane',
+    style: function(feature) {
+      const name = feature.properties.name;
+      const count = nbCellCount[name] || 0;
+      const isSelected = (state.activeNeighborhood === name);
+      const hasData = count > 0;
+      return {
+        color: isSelected ? '#2B4CFF' : (hasData ? '#1A1A1A' : '#C8C4B8'),
+        weight: isSelected ? 3 : (hasData ? 1.5 : 1),
+        fillColor: isSelected ? 'rgba(43,76,255,0.12)' : (hasData ? 'rgba(255,77,0,0.06)' : 'transparent'),
+        fillOpacity: 1,
+        dashArray: hasData ? null : '4 4'
+      };
+    },
+    onEachFeature: function(feature, layer) {
+      const name = feature.properties.name;
+      const count = nbCellCount[name] || 0;
+
+      layer.bindTooltip(
+        `<b>${name.toUpperCase()}</b><br>${count} priority cell${count !== 1 ? 's' : ''}`,
+        { sticky: true, direction: 'top' }
+      );
+
+      layer.on('mouseover', function() {
+        if (state.activeNeighborhood !== name) {
+          this.setStyle({ color: '#2B4CFF', weight: 2, fillColor: 'rgba(43,76,255,0.08)', fillOpacity: 1 });
+        }
+      });
+      layer.on('mouseout', function() {
+        if (state.activeNeighborhood !== name) {
+          const hasData = count > 0;
+          this.setStyle({
+            color: hasData ? '#1A1A1A' : '#C8C4B8',
+            weight: hasData ? 1.5 : 1,
+            fillColor: hasData ? 'rgba(255,77,0,0.06)' : 'transparent',
+            fillOpacity: 1
+          });
+        }
+      });
+      layer.on('click', function(e) {
+        L.DomEvent.stopPropagation(e);
+        if (state.activeNeighborhood === name) {
+          // Deselect → reset to All
+          state.activeNeighborhood = 'all';
+          nbSelect.value = 'all';
+        } else {
+          state.activeNeighborhood = name;
+          nbSelect.value = name;
+          // If name not in dropdown, keep 'all'
+          if (nbSelect.value !== name) {
+            nbSelect.value = 'all';
+            state.activeNeighborhood = 'all';
+          }
+        }
+        buildNeighborhoodLayer(); // re-style
+        applyFilters();
+      });
+    }
+  }).addTo(nbGroup);
+}
+
+buildNeighborhoodLayer();
+
+// Sync dropdown → also rebuild nb layer
+nbSelect.addEventListener('change', e => {
+  state.activeNeighborhood = e.target.value;
+  buildNeighborhoodLayer();
+  applyFilters();
+});
+
+/* ── Layer Toggle ──────────────────────────────────────────────── */
+const layerPanel = document.getElementById('layer-panel');
+document.getElementById('layer-toggle-btn').addEventListener('click', () => {
+  layerPanel.classList.toggle('open');
+});
+
+[[0,'lyr-cl0'],[2,'lyr-cl2'],[3,'lyr-cl3'],[4,'lyr-cl4'],[8,'lyr-cl8']].forEach(([cid, id]) => {
+  document.getElementById(id).addEventListener('change', function() {
+    if (this.checked) heatLayers[cid].addTo(map); else map.removeLayer(heatLayers[cid]);
+  });
+});
+document.getElementById('lyr-nb').addEventListener('change', function() {
+  if (this.checked) nbGroup.addTo(map); else map.removeLayer(nbGroup);
+});
+
+/* ── Custom Zoom Controls ──────────────────────────────────────── */
+document.getElementById('zoom-in').addEventListener('click', () => map.zoomIn());
+document.getElementById('zoom-out').addEventListener('click', () => map.zoomOut());
+
+/* ── Status Bar ────────────────────────────────────────────────── */
+const sbCoords = document.getElementById('sb-coords');
+map.on('mousemove', e => {
+  sbCoords.textContent = `LAT: ${e.latlng.lat.toFixed(4)} · LON: ${e.latlng.lng.toFixed(4)}`;
+});
+map.on('mouseout', () => { sbCoords.textContent = 'LAT: — · LON: —'; });
+/* ── Zoom-reactive heatmap opacity ─────────────────────────────── */
+function heatOpacityForZoom(z) {
+  // City view (z≤10) → very faint 0.08
+  // Neighborhood (z=13) → 0.30 (current default)
+  // Street level (z≥16) → 0.60
+  if (z <= 10) return 0.08;
+  if (z >= 16) return 0.60;
+  return 0.08 + (z - 10) * (0.60 - 0.08) / 6;
+}
+
+map.on('zoomend', () => {
+  const z = map.getZoom();
+  const opacity = heatOpacityForZoom(z);
+  META.clusterIds.forEach(cid => {
+    heatLayers[cid].setOptions({ minOpacity: opacity });
+    heatLayers[cid].redraw();
+  });
+  document.getElementById('statusbar').lastElementChild.textContent =
+    `ZOOM: ${z} · CHICAGO, IL · DATA: 2015–2023 · CMU ML`;
+});
+
+/* ── Initial Render ────────────────────────────────────────────── */
+applyFilters();
+// Set initial zoom display
+document.getElementById('statusbar').lastElementChild.textContent =
+  `ZOOM: ${map.getZoom()} · CHICAGO, IL · DATA: 2015–2023 · CMU ML`;
+</script>
+</body>
+</html>
