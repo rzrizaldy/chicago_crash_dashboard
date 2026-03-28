@@ -242,6 +242,10 @@
     .tier-btn.crit.on { background: var(--orange); color: #fff; box-shadow: none; }
     .tier-btn.high { border-color: var(--pink); color: var(--pink); }
     .tier-btn.high.on { background: var(--pink); color: #fff; box-shadow: none; }
+    .tier-btn.monitor { border-color: var(--blueprint); color: var(--blueprint); }
+    .tier-btn.monitor.on { background: var(--blueprint); color: #fff; box-shadow: none; }
+    .tier-btn.base { border-color: var(--green); color: var(--green); }
+    .tier-btn.base.on { background: var(--green); color: #fff; box-shadow: none; }
 
     .cl-btn {
       font-family: 'JetBrains Mono', monospace;
@@ -926,7 +930,7 @@
               <span class="guide-tier-pill" style="border-color:#00B884;color:#999">▣ BASELINE</span>
             </div>
             <div style="margin-top:7px;padding:5px 8px;background:#F0EEE7;border-left:3px solid #FF4D00;font-size:9px;color:#555;line-height:1.6">
-              <b style="color:#1A1A1A">Note:</b> This dashboard only shows <b style="color:#FF4D00">CRITICAL</b> and <b style="color:#FF2B8C">HIGH</b> cells — the top-priority zones that need attention. MONITOR and BASELINE cells are hidden by default to keep the map focused.
+              <b style="color:#1A1A1A">Default view:</b> only <b style="color:#FF4D00">CRITICAL</b> and <b style="color:#FF2B8C">HIGH</b> cells are shown to keep the map focused on priority zones. You can enable <b style="color:#2B4CFF">MONITOR</b> and <b style="color:#00B884">BASELINE</b> anytime using the tier filter buttons on the left panel.
             </div>
           </div>
         </div>
@@ -1026,6 +1030,8 @@
           <div class="chips">
             <button class="tier-btn crit on" data-tier="CRITICAL">■ CRITICAL</button>
             <button class="tier-btn high on" data-tier="HIGH">■ HIGH</button>
+            <button class="tier-btn monitor" data-tier="MONITOR">■ MONITOR</button>
+            <button class="tier-btn base" data-tier="BASELINE">■ BASELINE</button>
           </div>
 
           <div class="f-label">K-Means Cluster</div>
@@ -2492,7 +2498,9 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   document.getElementById('inspector-empty').style.display = '';
   document.getElementById('inspector-detail').style.display = 'none';
   nbSelect.value = 'all';
-  document.querySelectorAll('.tier-btn').forEach(b => b.classList.add('on'));
+  document.querySelectorAll('.tier-btn').forEach(b => {
+    b.classList.toggle('on', state.activeTiers.has(b.dataset.tier));
+  });
   document.querySelectorAll('.cl-btn').forEach(b => {
     b.classList.toggle('on', b.dataset.cl === 'all');
     const cm = CLUSTER_META[+b.dataset.cl];
