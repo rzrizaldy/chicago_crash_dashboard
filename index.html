@@ -634,7 +634,7 @@
     .temporal-canvas-wrap {
       flex: 1;
       position: relative;
-      padding: 3px 8px 4px;
+      padding: 3px 8px 10px;
     }
 
     /* ── 3-card KPI grid ─────────────────────────────────────────────── */
@@ -821,8 +821,8 @@
         <div id="layer-panel">
           <div class="lp-row"><input type="checkbox" id="lyr-cl0" checked> <label for="lyr-cl0"><span style="display:inline-block;width:10px;height:10px;background:#FF1A00;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>1 · HOT SPOTS</label></div>
           <div class="lp-row"><input type="checkbox" id="lyr-cl2" checked> <label for="lyr-cl2"><span style="display:inline-block;width:10px;height:10px;background:#1A40FF;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>2 · ALWAYS BUSY</label></div>
-          <div class="lp-row"><input type="checkbox" id="lyr-cl3" checked> <label for="lyr-cl3"><span style="display:inline-block;width:10px;height:10px;background:#00A86B;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>3 · RUSH HOUR</label></div>
-          <div class="lp-row"><input type="checkbox" id="lyr-cl4" checked> <label for="lyr-cl4"><span style="display:inline-block;width:10px;height:10px;background:#CC9900;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>4 · COMMUTER ROADS</label></div>
+          <div class="lp-row"><input type="checkbox" id="lyr-cl3" checked> <label for="lyr-cl3"><span style="display:inline-block;width:10px;height:10px;background:#00A86B;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>3 · PEAK JUNCTIONS</label></div>
+          <div class="lp-row"><input type="checkbox" id="lyr-cl4" checked> <label for="lyr-cl4"><span style="display:inline-block;width:10px;height:10px;background:#CC9900;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>4 · THROUGH TRAFFIC</label></div>
           <div class="lp-row"><input type="checkbox" id="lyr-cl8" checked> <label for="lyr-cl8"><span style="display:inline-block;width:10px;height:10px;background:#CC0066;border:1.5px solid #1A1A1A;margin-right:5px;vertical-align:middle"></span>5 · INJURY ZONES</label></div>
           <div class="lp-row"><input type="checkbox" id="lyr-dots" checked> <label for="lyr-dots">● Crash Dots</label></div>
           <div class="lp-row"><input type="checkbox" id="lyr-nb" checked> <label for="lyr-nb">Neighborhood Borders</label></div>
@@ -866,12 +866,12 @@
         <div style="display:flex;align-items:flex-start;gap:8px">
           <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:11px;color:var(--orange);flex-shrink:0;min-width:16px">3</span>
           <span style="display:inline-block;width:9px;height:9px;background:#00A86B;border:2px solid #1A1A1A;flex-shrink:0;margin-top:3px"></span>
-          <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">RUSH HOUR</b> — 42.8% of crashes at peak hours. Target AM/PM commute windows (7–9am, 4–7pm).</div>
+          <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">PEAK JUNCTIONS</b> — Crashes spike sharply at 7–9am &amp; 4–7pm only. Outside those windows, these roads are calm.</div>
         </div>
         <div style="display:flex;align-items:flex-start;gap:8px">
           <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:11px;color:var(--orange);flex-shrink:0;min-width:16px">4</span>
           <span style="display:inline-block;width:9px;height:9px;background:#CC9900;border:2px solid #1A1A1A;flex-shrink:0;margin-top:3px"></span>
-          <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">COMMUTER ROADS</b> — 62.5% commuter-driven. Low baseline risk but spikes during rush. Temporary signage priority.</div>
+          <div style="font-size:9px;line-height:1.5"><b style="font-size:10px;letter-spacing:0.06em">THROUGH TRAFFIC</b> — High-volume arterial roads busy throughout the whole day, not limited to a specific time window.</div>
         </div>
         <div style="display:flex;align-items:flex-start;gap:8px">
           <span style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:11px;color:var(--orange);flex-shrink:0;min-width:16px">5</span>
@@ -899,7 +899,7 @@
         <div class="stat-row"><span class="stat-label">TOP CLUSTER</span><span class="stat-value" id="area-cluster">—</span></div>
       </div>
       <div id="inspector-detail" class="sec-body">
-        <div style="font-size:8px;font-weight:700;letter-spacing:0.12em;color:#777;margin-bottom:6px;text-transform:uppercase" id="insp-mode-label">CELL INSPECTION</div>
+        <div style="font-size:8px;font-weight:700;letter-spacing:0.08em;color:#777;margin-bottom:5px;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;border-left:3px solid var(--blueprint);padding-left:6px" id="insp-mode-label">CELL INSPECTION</div>
         <div class="insp-header">
           <span class="tier-badge" id="insp-tier">—</span>
           <span class="cluster-badge" id="insp-cluster">—</span>
@@ -982,8 +982,8 @@
           <div style="display:flex;flex-direction:column;gap:5px;">
             <div class="tier-legend-row" style="border:none;padding:2px 0;gap:6px"><div class="tl-dot" style="background:#FF1A00;flex-shrink:0"></div><div style="font-size:9px;flex:1"><b>HOT SPOTS</b><br><span style="color:#999">53 cells · worst crash zones</span></div></div>
             <div class="tier-legend-row" style="border:none;padding:2px 0;gap:6px"><div class="tl-dot" style="background:#1A40FF;flex-shrink:0"></div><div style="font-size:9px;flex:1"><b>ALWAYS BUSY</b><br><span style="color:#999">22 cells · crashes day &amp; night</span></div></div>
-            <div class="tier-legend-row" style="border:none;padding:2px 0;gap:6px"><div class="tl-dot" style="background:#00A86B;flex-shrink:0"></div><div style="font-size:9px;flex:1"><b>RUSH HOUR</b><br><span style="color:#999">46 cells · morning/evening peak</span></div></div>
-            <div class="tier-legend-row" style="border:none;padding:2px 0;gap:6px"><div class="tl-dot" style="background:#CC9900;flex-shrink:0"></div><div style="font-size:9px;flex:1"><b>COMMUTER ROADS</b><br><span style="color:#999">36 cells · heavy work traffic</span></div></div>
+            <div class="tier-legend-row" style="border:none;padding:2px 0;gap:6px"><div class="tl-dot" style="background:#00A86B;flex-shrink:0"></div><div style="font-size:9px;flex:1"><b>PEAK JUNCTIONS</b><br><span style="color:#999">46 cells · spikes 7–9am &amp; 4–7pm only</span></div></div>
+            <div class="tier-legend-row" style="border:none;padding:2px 0;gap:6px"><div class="tl-dot" style="background:#CC9900;flex-shrink:0"></div><div style="font-size:9px;flex:1"><b>THROUGH TRAFFIC</b><br><span style="color:#999">36 cells · busy arterials all day</span></div></div>
             <div class="tier-legend-row" style="border:none;padding:2px 0;gap:6px"><div class="tl-dot" style="background:#CC0066;flex-shrink:0"></div><div style="font-size:9px;flex:1"><b>INJURY ZONES</b><br><span style="color:#999">49 cells · more people get hurt</span></div></div>
           </div>
         </div>
@@ -992,30 +992,30 @@
 
     <!-- TEMPORAL OVERVIEW -->
     <div class="sec-block">
-      <div class="sec-head">Temporal Overview</div>
-      <div class="sec-body">
+      <div class="sec-head">Temporal Overview <span style="font-weight:400;font-size:8px;color:#999;letter-spacing:0">filtered</span></div>
+      <div class="sec-body" id="temporal-overview-body">
         <div class="ov-row">
-          <div class="ov-label-row"><span class="ov-label">Rush Hour</span><span class="ov-pct">33.4%</span></div>
-          <div class="ov-track"><div class="ov-fill" style="width:33.4%;background:var(--orange)"></div></div>
+          <div class="ov-label-row"><span class="ov-label">Rush Hour</span><span class="ov-pct" id="ov-rush">—</span></div>
+          <div class="ov-track"><div class="ov-fill" id="ovf-rush" style="background:var(--orange)"></div></div>
         </div>
         <div class="ov-row">
-          <div class="ov-label-row"><span class="ov-label">Hit &amp; Run</span><span class="ov-pct">25.7%</span></div>
-          <div class="ov-track"><div class="ov-fill" style="width:25.7%;background:var(--pink)"></div></div>
+          <div class="ov-label-row"><span class="ov-label">Hit &amp; Run</span><span class="ov-pct" id="ov-hitr">—</span></div>
+          <div class="ov-track"><div class="ov-fill" id="ovf-hitr" style="background:var(--pink)"></div></div>
         </div>
         <div class="ov-row">
-          <div class="ov-label-row"><span class="ov-label">Weekend</span><span class="ov-pct">11.7%</span></div>
-          <div class="ov-track"><div class="ov-fill" style="width:11.7%;background:var(--blueprint)"></div></div>
+          <div class="ov-label-row"><span class="ov-label">Weekend</span><span class="ov-pct" id="ov-wknd">—</span></div>
+          <div class="ov-track"><div class="ov-fill" id="ovf-wknd" style="background:var(--blueprint)"></div></div>
         </div>
         <div class="ov-row">
-          <div class="ov-label-row"><span class="ov-label">Night</span><span class="ov-pct">3.5%</span></div>
-          <div class="ov-track"><div class="ov-fill" style="width:3.5%;background:var(--ink)"></div></div>
+          <div class="ov-label-row"><span class="ov-label">Night</span><span class="ov-pct" id="ov-nght">—</span></div>
+          <div class="ov-track"><div class="ov-fill" id="ovf-nght" style="background:var(--ink)"></div></div>
         </div>
       </div>
     </div>
 
     <!-- CRITICAL HOTSPOTS (Top 5 by avg risk score, grouped by neighborhood) -->
     <div class="sec-block">
-      <div class="sec-head">Critical Hotspots</div>
+      <div class="sec-head">Critical Hotspots <span style="font-weight:400;font-size:8px;color:#999;letter-spacing:0">filtered top 5</span></div>
       <div class="sec-body" style="padding:8px 10px">
         <table class="critical-table" id="top5-table">
           <thead>
@@ -1035,7 +1035,7 @@
 
     <!-- CLUSTER ANALYSIS -->
     <div class="sec-block">
-      <div class="sec-head">Cluster Analysis</div>
+      <div class="sec-head">Cluster Analysis <span style="font-weight:400;font-size:8px;color:#999;letter-spacing:0">filtered</span></div>
       <div class="sec-body">
         <table class="cl-table" id="cl-table">
           <thead>
@@ -1083,8 +1083,8 @@ const CLUSTER_COLORS = ['#2B4CFF','#FF4D00','#00B884','#FFD000','#FF2B8C','#9B59
 const CLUSTER_META = {
   0: { name: 'HOT SPOTS',      sub: 'Worst crash zones — most serious injuries',   color: '#FF1A00', gradient: { 0.0:'#FFE066', 0.4:'#FF6600', 0.78:'#FF1A00', 1.0:'#8B0000' } },
   2: { name: 'ALWAYS BUSY',    sub: 'High crashes all day and all night',           color: '#1A40FF', gradient: { 0.0:'#B3C6FF', 0.4:'#4D79FF', 0.78:'#1A40FF', 1.0:'#001199' } },
-  3: { name: 'RUSH HOUR',      sub: 'Most crashes during morning/evening commute', color: '#00A86B', gradient: { 0.0:'#A3F0D6', 0.4:'#00CC80', 0.78:'#00A86B', 1.0:'#004D33' } },
-  4: { name: 'COMMUTER ROADS', sub: 'Gets busiest when people travel to/from work',color: '#CC9900', gradient: { 0.0:'#FFF3A3', 0.4:'#FFD000', 0.78:'#CC9900', 1.0:'#805E00' } },
+  3: { name: 'PEAK JUNCTIONS', sub: 'Crash spikes at exact 7–9am & 4–7pm windows', color: '#00A86B', gradient: { 0.0:'#A3F0D6', 0.4:'#00CC80', 0.78:'#00A86B', 1.0:'#004D33' } },
+  4: { name: 'THROUGH TRAFFIC',sub: 'High-volume arterials busy all day, not just rush', color: '#CC9900', gradient: { 0.0:'#FFF3A3', 0.4:'#FFD000', 0.78:'#CC9900', 1.0:'#805E00' } },
   8: { name: 'INJURY ZONES',   sub: 'Fewer crashes but more people get hurt here', color: '#CC0066', gradient: { 0.0:'#FFB3D9', 0.4:'#FF3399', 0.78:'#CC0066', 1.0:'#660033' } },
 };
 const CLUSTER_RANK = { 0:1, 2:2, 3:3, 4:4, 8:5 };
@@ -1486,6 +1486,12 @@ function applyFilters() {
 
   // Refresh temporal chart (no cell selected → re-aggregate)
   if (state.selected === null) updateTemporalChart();
+
+  // Refresh all reactive right-panel widgets
+  if (typeof updateTemporalOverview === 'function') updateTemporalOverview();
+  if (typeof buildCriticalHotspots  === 'function') buildCriticalHotspots();
+  if (typeof buildClusterTable      === 'function') buildClusterTable();
+  if (typeof updateRiskChart        === 'function') updateRiskChart();
 }
 
 /* ── Donut Chart ───────────────────────────────────────────────── */
@@ -1530,10 +1536,26 @@ function updateDonut(critN, highN) {
 initDonut();
 
 /* ── Critical Hotspots Table (grouped by neighborhood, ranked by avg risk) ── */
+/* ── Temporal Overview reactive bars ──────────────────────────── */
+function updateTemporalOverview() {
+  const visCells = getVisibleIndices().map(i => CELLS[i]);
+  if (!visCells.length) return;
+  const total = visCells.reduce((s,c) => s+c.crashes, 0) || 1;
+  const rush = visCells.reduce((s,c) => s+c.pctRushHour*c.crashes, 0)/total;
+  const hitr = visCells.reduce((s,c) => s+c.pctHitRun*c.crashes,   0)/total;
+  const wknd = visCells.reduce((s,c) => s+c.pctWeekend*c.crashes,  0)/total;
+  const nght = visCells.reduce((s,c) => s+c.pctNight*c.crashes,    0)/total;
+  [['rush',rush],['hitr',hitr],['wknd',wknd],['nght',nght]].forEach(([k,v]) => {
+    document.getElementById('ov-'+k).textContent = v.toFixed(1)+'%';
+    document.getElementById('ovf-'+k).style.width = Math.min(v,100)+'%';
+  });
+}
+
 function buildCriticalHotspots() {
-  // Group CRITICAL cells by neighborhood
+  // Group visible cells by neighborhood, ranked by avg risk score
   const nbMap = {};
-  CELLS.filter(c => c.tier === 'CRITICAL').forEach(c => {
+  const visSet = new Set(getVisibleIndices());
+  CELLS.filter((c,i) => visSet.has(i)).forEach(c => {
     if (!nbMap[c.neighborhood]) nbMap[c.neighborhood] = { crashes:0, severe:0, risks:[], cells:[] };
     nbMap[c.neighborhood].crashes += c.crashes;
     nbMap[c.neighborhood].severe  += c.severe;
@@ -1589,14 +1611,17 @@ function buildCriticalHotspots() {
   });
 }
 buildCriticalHotspots();
+updateTemporalOverview();
 
 /* ── Cluster Summary Table ─────────────────────────────────────── */
 function buildClusterTable() {
   const tbody = document.getElementById('cl-body');
   tbody.innerHTML = '';
+  const visSet = new Set(getVisibleIndices());
   META.clusterIds.forEach(cid => {
     const m = CLUSTER_META[cid];
-    const cells = CELLS.filter(c => c.cluster === cid);
+    const cells = CELLS.filter((c,i) => visSet.has(i) && c.cluster === cid);
+    if (!cells.length) return; // hide clusters not in current filter
     const avgRisk = (cells.reduce((s,c) => s + c.riskScore, 0) / cells.length).toFixed(3);
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -1605,6 +1630,7 @@ function buildClusterTable() {
       <td>${avgRisk}</td>`;
     tbody.appendChild(tr);
   });
+  if (!tbody.children.length) tbody.innerHTML = '<tr><td colspan="3" style="color:#999;font-size:9px;padding:8px 4px">No clusters in current filter</td></tr>';
 }
 buildClusterTable();
 
@@ -1734,49 +1760,89 @@ let _top10Sorted = []; // stored for click reference
   });
 })();
 
-// 4. Risk Score Distribution histogram
-(function() {
-  const step = 0.01;
-  const buckets = {};
-  CELLS.forEach(c => {
-    const b = (Math.floor(c.riskScore / step) * step).toFixed(2);
-    buckets[b] = (buckets[b]||0) + 1;
+// 4. Risk Score Distribution — density line chart, active cells only
+let riskChart = null;
+function updateRiskChart() {
+  const visCells = getVisibleIndices().map(i => CELLS[i])
+    .filter(c => c.tier === 'CRITICAL' || c.tier === 'HIGH');
+  if (!visCells.length) {
+    if (riskChart) { riskChart.data.datasets[0].data = []; riskChart.update('none'); }
+    return;
+  }
+  // KDE with Gaussian kernel over fixed grid 0.00–0.22 step 0.002
+  const bandwidth = 0.006;
+  const pts = [];
+  for (let x = 0.00; x <= 0.22; x = +(x + 0.002).toFixed(3)) {
+    const density = visCells.reduce((s, c) => {
+      const z = (x - c.riskScore) / bandwidth;
+      return s + Math.exp(-0.5 * z * z);
+    }, 0) / (visCells.length * bandwidth * Math.sqrt(2 * Math.PI));
+    pts.push({ x: +x.toFixed(3), y: +density.toFixed(4) });
+  }
+  const labels = pts.map(p => p.x.toFixed(3));
+  const values = pts.map(p => p.y);
+  // Color by risk tier zone
+  const critThresh = 0.14, highThresh = 0.08;
+  const fillColors = labels.map(l => {
+    const v = +l;
+    return v >= critThresh ? 'rgba(255,77,0,0.65)' : v >= highThresh ? 'rgba(255,43,140,0.50)' : 'rgba(43,76,255,0.35)';
   });
-  const keys = Object.keys(buckets).sort((a,b)=>+a-+b);
-  new Chart(document.getElementById('eda-risk'), {
-    type: 'bar',
-    data: {
-      labels: keys.map(k=>(+k).toFixed(2)),
-      datasets: [{ data: keys.map(k=>buckets[k]), backgroundColor: keys.map(k=>+k>0.14?'#FF4D00':+k>0.10?'#FF2B8C':'#2B4CFF'), borderColor: '#1A1A1A', borderWidth: 1 }]
-    },
-    options: { ...CHART_DEFAULTS,
-      onClick: (event, elements) => {
-        if (!elements.length) return;
-        const barKey = +keys[elements[0].index];
-        // Determine tier from risk score threshold
-        let tier;
-        if (barKey > 0.14)      tier = 'CRITICAL';
-        else if (barKey > 0.08) tier = 'HIGH';
-        else if (barKey > 0.04) tier = 'MONITOR';
-        else                    tier = 'BASELINE';
-        // Toggle that tier
-        if (state.activeTiers.has(tier) && state.activeTiers.size === 1) {
-          // re-enable all if only one left
-          ['CRITICAL','HIGH','MONITOR','BASELINE'].forEach(t => state.activeTiers.add(t));
-        } else {
-          state.activeTiers.clear();
-          state.activeTiers.add(tier);
-        }
-        document.querySelectorAll('.tier-btn').forEach(b => {
-          b.classList.toggle('on', state.activeTiers.has(b.dataset.tier));
-        });
-        applyFilters();
-        updateTemporalChart();
+
+  if (riskChart) {
+    riskChart.data.labels = labels;
+    riskChart.data.datasets[0].data = values;
+    riskChart.data.datasets[0].pointBackgroundColor = fillColors;
+    riskChart.update('none');
+  } else {
+    const ctx = document.getElementById('eda-risk').getContext('2d');
+    riskChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          borderColor: '#1A1A1A',
+          borderWidth: 1.5,
+          fill: true,
+          backgroundColor: (context) => {
+            const chart = context.chart;
+            const { ctx: c, chartArea } = chart;
+            if (!chartArea) return 'rgba(43,76,255,0.2)';
+            const grad = c.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+            grad.addColorStop(0,   'rgba(43,76,255,0.30)');   // low risk
+            grad.addColorStop(0.36,'rgba(255,43,140,0.45)');  // HIGH zone
+            grad.addColorStop(0.64,'rgba(255,77,0,0.60)');    // CRITICAL zone
+            grad.addColorStop(1,   'rgba(255,77,0,0.70)');
+            return grad;
+          },
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointBackgroundColor: fillColors
+        }]
       },
-      plugins: { ...CHART_DEFAULTS.plugins, tooltip: { ...CHART_DEFAULTS.plugins.tooltip, callbacks: { title: ctx => 'Risk score: ' + ctx[0].label, label: ctx => ` ${ctx.parsed.y} cells · Click to filter by tier` } } }
-    }
-  });
-})();
+      options: {
+        ...CHART_DEFAULTS,
+        plugins: {
+          ...CHART_DEFAULTS.plugins,
+          tooltip: {
+            ...CHART_DEFAULTS.plugins.tooltip,
+            callbacks: {
+              title: ctx => `Risk score: ${ctx[0].label}`,
+              label: ctx => ` density: ${ctx.parsed.y.toFixed(3)} · ${+ctx.label >= critThresh ? '🔴 CRITICAL zone' : +ctx.label >= highThresh ? '🔶 HIGH zone' : 'lower risk'}`
+            }
+          },
+          annotation: undefined
+        },
+        scales: {
+          x: { ...CHART_DEFAULTS.scales.x, ticks: { ...CHART_DEFAULTS.scales.x.ticks, maxTicksLimit: 8, callback: (v, i) => i % 4 === 0 ? labels[i] : '' } },
+          y: { ...CHART_DEFAULTS.scales.y, ticks: { display: false }, grid: { display: false }, title: { display: true, text: 'Density', font: { family: 'JetBrains Mono', size: 8 }, color: '#999' } }
+        }
+      }
+    });
+  }
+}
+updateRiskChart();
 
 /* ── Temporal Trend Chart ──────────────────────────────────────── */
 const MONTH_LABELS  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1847,28 +1913,30 @@ function updateTemporalChart() {
   const data = computeTemporalData(cells);
   if (!data) return;
 
+  // Use neutral slate palette — no cluster colors to avoid confusion
+  const BASE_COLOR  = 'rgba(80, 90, 110, 0.75)';
+  const HIGH_COLOR  = 'rgba(80, 90, 110, 1.0)';
+  const LOW_COLOR   = 'rgba(80, 90, 110, 0.40)';
+
   let labels, values, colors;
   if (temporalView === 'daily') {
     // DAILY = 24-hour breakdown
     labels = DAY_LABELS;
     values = data.hourly;
-    colors = DAY_LABELS.map((_,h) => {
-      if (h===7||h===8)     return '#FF4D00';  // morning rush
-      if (h>=16&&h<=18)     return '#FF6B00';  // evening rush
-      if (h>=22||h<=5)      return '#444';     // night
-      return '#2B4CFF';
-    });
+    const peak = Math.max(...values);
+    colors = values.map(v => v >= peak * 0.92 ? HIGH_COLOR : v <= peak * 0.55 ? LOW_COLOR : BASE_COLOR);
   } else if (temporalView === 'weekly') {
     // WEEKLY = Mon-Sun breakdown
     labels = WEEK_LABELS;
     values = data.daily;
-    colors = ['#2B4CFF','#2B4CFF','#2B4CFF','#2B4CFF','#FF4D00','#FF2B8C','#FF2B8C'];
+    const peak = Math.max(...values);
+    colors = values.map(v => v >= peak * 0.92 ? HIGH_COLOR : v <= peak * 0.55 ? LOW_COLOR : BASE_COLOR);
   } else {
     // MONTHLY = Jan-Dec seasonal
     labels = MONTH_LABELS;
     values = data.monthly;
     const peak = Math.max(...values);
-    colors = values.map(v => v >= peak*0.95 ? '#FF4D00' : v >= peak*0.85 ? '#FF6B00' : v <= peak*0.70 ? '#888' : '#2B4CFF');
+    colors = values.map(v => v >= peak * 0.92 ? HIGH_COLOR : v <= peak * 0.55 ? LOW_COLOR : BASE_COLOR);
   }
 
   if (temporalChart) {
