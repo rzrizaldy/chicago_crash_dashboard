@@ -242,10 +242,6 @@
     .tier-btn.crit.on { background: var(--orange); color: #fff; box-shadow: none; }
     .tier-btn.high { border-color: var(--pink); color: var(--pink); }
     .tier-btn.high.on { background: var(--pink); color: #fff; box-shadow: none; }
-    .tier-btn.monitor { border-color: var(--blueprint); color: var(--blueprint); }
-    .tier-btn.monitor.on { background: var(--blueprint); color: #fff; box-shadow: none; }
-    .tier-btn.base { border-color: var(--green); color: var(--green); }
-    .tier-btn.base.on { background: var(--green); color: #fff; box-shadow: none; }
 
     .cl-btn {
       font-family: 'JetBrains Mono', monospace;
@@ -924,13 +920,11 @@
           <div class="guide-step-body">
             Chicago is split into hundreds of small grid squares. Each square is colored by how dangerous it is for car crashes. The darker and more intense the color, the worse it is.
             <div class="guide-tier-row">
-              <span class="guide-tier-pill" style="border-color:#FF4D00;color:#FF4D00">▣ CRITICAL</span>
-              <span class="guide-tier-pill" style="border-color:#FF2B8C;color:#FF2B8C">▣ HIGH</span>
-              <span class="guide-tier-pill" style="border-color:#2B4CFF;color:#999">▣ MONITOR</span>
-              <span class="guide-tier-pill" style="border-color:#00B884;color:#999">▣ BASELINE</span>
+              <span class="guide-tier-pill" style="border-color:#FF4D00;color:#FF4D00">▣ CRITICAL — 30 cells</span>
+              <span class="guide-tier-pill" style="border-color:#FF2B8C;color:#FF2B8C">▣ HIGH — 176 cells</span>
             </div>
             <div style="margin-top:7px;padding:5px 8px;background:#F0EEE7;border-left:3px solid #FF4D00;font-size:9px;color:#555;line-height:1.6">
-              <b style="color:#1A1A1A">Default view:</b> only <b style="color:#FF4D00">CRITICAL</b> and <b style="color:#FF2B8C">HIGH</b> cells are shown to keep the map focused on priority zones. You can enable <b style="color:#2B4CFF">MONITOR</b> and <b style="color:#00B884">BASELINE</b> anytime using the tier filter buttons on the left panel.
+              The dataset contains <b style="color:#1A1A1A">only CRITICAL and HIGH</b> cells — pre-filtered to the 206 highest-risk grid squares in Chicago. Use the tier buttons on the left to toggle between them.
             </div>
           </div>
         </div>
@@ -1030,8 +1024,6 @@
           <div class="chips">
             <button class="tier-btn crit on" data-tier="CRITICAL">■ CRITICAL</button>
             <button class="tier-btn high on" data-tier="HIGH">■ HIGH</button>
-            <button class="tier-btn monitor" data-tier="MONITOR">■ MONITOR</button>
-            <button class="tier-btn base" data-tier="BASELINE">■ BASELINE</button>
           </div>
 
           <div class="f-label">K-Means Cluster</div>
